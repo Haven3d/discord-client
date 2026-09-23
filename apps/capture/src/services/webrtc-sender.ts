@@ -1,0 +1,149 @@
+import { Socket } from 'socket.io-client';
+import { sendOffer, sendIceCandidate } from './socket';
+
+export class WebRTCSender {
+  private socket: Socket;
+  private channelId: string;
+  private peerConnections: Map<string, RTCPeerConnection> = new Map();
+  private localStream: MediaStream | null = null;
+  private bitrate: number = 3600000;
+  
+  private iceServers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ];
+
+  constructor(socket: Socket, channelId: string) {
+    this.socket = socket;
+    this.channelId = channelId;
+    this.setupSocketListeners();
+  }
+
+  public setLocalStream(stream: MediaStream, bitrate: number) {
+    this.localStream = stream;
+    this.bitrate = bitrate;
+    this.peerConnections.forEach((pc) => {
+      stream.getTracks().forEach(track => {
+        const senders = pc.getSenders();
+        const existingSender = senders.find(s => s.track && s.track.kind === track.kind);
+        if (existingSender) {
+          existingSender.replaceTrack(track);
+        } else {
+          pc.addTrack(track, stream);
+        }
+      });
+    });
+  }
+
+  private setupSocketListeners() {
+    this.socket.on('viewer-joined', async ({ viewerId }) => {
+      await this.createPeerConnection(viewerId);
+    });
+
+    this.socket.on('answer', async ({ sender, answer }) => {
+      await this.handleAnswer(sender, answer);
+    });
+
+    this.socket.on('ice-candidate', async ({ sender, candidate }) => {
+      await this.handleIceCandidate(sender, candidate);
+    });
+
+    this.socket.on('viewer-left', ({ viewerId }) => {
+      this.removePeer(viewerId);
+    });
+  }
+
+  private async createPeerConnection(viewerId: string) {
+    const pc = new RTCPeerConnection({ iceServers: this.iceServers });
+    this.peerConnections.set(viewerId, pc);
+
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => {
+        pc.addTrack(track, this.localStream!);
+      });
+    }
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        sendIceCandidate(viewerId, event.candidate);
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log(`Connection state for ${viewerId}: ${pc.connectionState}`);
+      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        this.removePeer(viewerId);
+      }
+    };
+
+    try {
+      const offer = await pc.createOffer();
+      offer.sdp = this.mungeSDP(offer.sdp || '', this.bitrate);
+      await pc.setLocalDescription(offer);
+      sendOffer(viewerId, pc.localDescription!);
+    } catch (error) {
+      console.error('Error creating offer:', error);
+    }
+
+    return pc;
+  }
+
+  private async handleAnswer(viewerId: string, answer: RTCSessionDescriptionInit) {
+    const pc = this.peerConnections.get(viewerId);
+    if (pc) {
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      } catch (error) {
+        console.error('Error setting remote description:', error);
+      }
+    }
+  }
+
+  private async handleIceCandidate(viewerId: string, candidate: RTCIceCandidateInit) {
+    const pc = this.peerConnections.get(viewerId);
+    if (pc) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        console.error('Error adding ice candidate:', error);
+      }
+    }
+  }
+
+  public removePeer(viewerId: string) {
+    const pc = this.peerConnections.get(viewerId);
+    if (pc) {
+      pc.close();
+      this.peerConnections.delete(viewerId);
+    }
+  }
+
+  public closeAll() {
+    this.peerConnections.forEach(pc => pc.close());
+    this.peerConnections.clear();
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => track.stop());
+    }
+    this.socket.off('viewer-joined');
+    this.socket.off('answer');
+    this.socket.off('ice-candidate');
+    this.socket.off('viewer-left');
+  }
+
+  private mungeSDP(sdp: string, bitrate: number): string {
+    const lines = sdp.split('\r\n');
+    const modifiedLines = [];
+    let inVideoMline = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      modifiedLines.push(lines[i]);
+      if (lines[i].startsWith('m=video')) {
+        inVideoMline = true;
+      } else if (inVideoMline && lines[i].startsWith('c=')) {
+        modifiedLines.push(`b=AS:${Math.floor(bitrate / 1000)}`);
+        inVideoMline = false;
+      }
+    }
+    return modifiedLines.join('\r\n');
+  }
+}

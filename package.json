@@ -1,0 +1,33 @@
+{
+  "name": "discord-screen-share",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Discord Screen Share Activity usando Discord Embedded App SDK, WebRTC e Socket.io",
+  "workspaces": [
+    "apps/client",
+    "apps/capture",
+    "apps/server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"server,client,capture\" -c \"cyan,green,magenta\" \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:capture\"",
+    "build": "npm run build --workspaces",
+    "dev:client": "npm run dev --workspace=@discord-screen-share/client",
+    "dev:capture": "npm run dev --workspace=@discord-screen-share/capture",
+    "dev:server": "npm run dev --workspace=@discord-screen-share/server",
+    "build:client": "npm run build --workspace=@discord-screen-share/client",
+    "build:capture": "npm run build --workspace=@discord-screen-share/capture",
+    "build:server": "npm run build --workspace=@discord-screen-share/server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "discord",
+    "discord-activity",
+    "embedded-app-sdk",
+    "webrtc",
+    "screen-share",
+    "socket.io"
+  ],
+  "license": "MIT"
+}
