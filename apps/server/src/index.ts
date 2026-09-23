@@ -13,6 +13,7 @@ app.use(express.json());
 app.use(corsMiddleware);
 
 const io = new Server(httpServer, {
+  path: '/ws/',
   cors: {
     origin: config.allowedOrigins,
     credentials: true,

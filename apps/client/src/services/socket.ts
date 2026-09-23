@@ -12,7 +12,7 @@ export const connectSocket = (serverUrl?: string) => {
     }
     
     socket = io(finalUrl || undefined, {
-      path: '/socket.io',
+      path: '/ws/',
       transports: ['polling', 'websocket'],
     });
 
