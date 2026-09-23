@@ -1,4 +1,3 @@
-import React from 'react';
 import { QualityPreset } from '../services/media-capture';
 
 interface QualitySelectorProps {

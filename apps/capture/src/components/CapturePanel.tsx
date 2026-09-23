@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { QualityPreset, QUALITY_PRESETS } from '../services/media-capture';
 import { QualitySelector } from './QualitySelector';
 

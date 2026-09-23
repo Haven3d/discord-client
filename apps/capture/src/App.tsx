@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import socket, { connectSocket, disconnectSocket, joinRoom } from './services/socket';
 import { WebRTCSender } from './services/webrtc-sender';
 import { CapturePanel } from './components/CapturePanel';
@@ -41,7 +41,8 @@ function App() {
   useEffect(() => {
     if (channelId && userId) {
       socket.on('connect', () => {
-        joinRoom(channelId, userId);
+        const userInfo = { id: userId, username: 'Transmissão', avatar: '' };
+        joinRoom(channelId, userInfo as any);
         webrtcSenderRef.current = new WebRTCSender(socket, channelId);
         if (screenStream) {
           webrtcSenderRef.current.setLocalStream(screenStream, qualityPreset.bitrate);

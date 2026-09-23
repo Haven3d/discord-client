@@ -3,7 +3,7 @@ import { sendOffer, sendIceCandidate } from './socket';
 
 export class WebRTCSender {
   private socket: Socket;
-  private channelId: string;
+  // private channelId: string;
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
   private localStream: MediaStream | null = null;
   private bitrate: number = 3600000;
@@ -13,9 +13,9 @@ export class WebRTCSender {
     { urls: 'stun:stun1.l.google.com:19302' }
   ];
 
-  constructor(socket: Socket, channelId: string) {
+  constructor(socket: Socket, _channelId: string) {
     this.socket = socket;
-    this.channelId = channelId;
+    // this.channelId = channelId;
     this.setupSocketListeners();
   }
 
