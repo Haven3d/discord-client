@@ -22,7 +22,15 @@ export const useDiscordSdk = () => {
           scope: ['identify', 'guilds'],
         });
 
-        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+        // Use current origin if VITE_SERVER_URL is not set (Discord Proxy)
+        const isDev = import.meta.env.DEV;
+        let serverUrl = import.meta.env.VITE_SERVER_URL?.replace(/\/$/, '') || (isDev ? 'http://localhost:3001' : '');
+        
+        // Driblando o Vercel enviroment - se for a mesma url do client, usamos proxy
+        if (serverUrl.includes('discord-client-server')) {
+             serverUrl = ''; // Força usar o proxy do discord (.discordsays.com)
+        }
+
         const response = await fetch(`${serverUrl}/api/token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
