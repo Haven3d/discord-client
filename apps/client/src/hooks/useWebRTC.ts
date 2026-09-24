@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { socketService, sendAnswer, sendIceCandidate } from '../services/socket';
 
 export interface RemoteStreamInfo {
@@ -9,7 +9,8 @@ export interface RemoteStreamInfo {
 export const useWebRTC = () => {
   const [remoteStreams, setRemoteStreams] = useState<RemoteStreamInfo[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [peerConnections, setPeerConnections] = useState<Map<string, RTCPeerConnection>>(new Map());
+
+  const peerConnections = React.useRef<Map<string, RTCPeerConnection>>(new Map());
 
   const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -41,11 +42,7 @@ export const useWebRTC = () => {
         if (pc.connectionState === 'connected') setIsConnected(true);
         if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
           setRemoteStreams(prev => prev.filter(rs => rs.id !== from));
-          setPeerConnections(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(from);
-            return newMap;
-          });
+          peerConnections.current.delete(from);
         }
       };
 
@@ -55,11 +52,7 @@ export const useWebRTC = () => {
       
       sendAnswer(from, pc.localDescription!);
 
-      setPeerConnections(prev => {
-        const newMap = new Map(prev);
-        newMap.set(from, pc);
-        return newMap;
-      });
+      peerConnections.current.set(from, pc);
 
     } catch (error) {
       console.error('Error handling offer:', error);
@@ -67,23 +60,18 @@ export const useWebRTC = () => {
   }, []);
 
   const handleIceCandidate = useCallback(async (from: string, candidate: RTCIceCandidateInit) => {
-    setPeerConnections(prev => {
-      const pc = prev.get(from);
-      if (pc) {
-        pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error(e));
-      }
-      return prev;
-    });
+    const pc = peerConnections.current.get(from);
+    if (pc) {
+      pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error(e));
+    }
   }, []);
 
   const handleUserLeft = useCallback((socketId: string) => {
-    setPeerConnections(prev => {
-      const pc = prev.get(socketId);
-      if (pc) pc.close();
-      const newMap = new Map(prev);
-      newMap.delete(socketId);
-      return newMap;
-    });
+    const pc = peerConnections.current.get(socketId);
+    if (pc) {
+      pc.close();
+      peerConnections.current.delete(socketId);
+    }
     setRemoteStreams(prev => prev.filter(rs => rs.id !== socketId));
   }, []);
 
