@@ -145,7 +145,7 @@ const server = http.createServer((req, res) => {
                 if(txt) logs.push('[Local] ' + txt.replace(/\n/g, '<br>[Local] '));
             });
             
-            cfProcess = spawn('npx', ['ngrok', 'http', '--domain=morgan-losing-alberto.ngrok-free.dev', '5173'], { shell: true });
+            cfProcess = spawn('.\\ngrok.exe', ['http', '--domain=morgan-losing-alberto.ngrok-free.dev', '5173'], { shell: true });
             
             tunnelUrl = 'https://morgan-losing-alberto.ngrok-free.dev';
             logs.push('<span style="color: #fff">✅ TÚNEL NGROK FIXO CONECTADO: ' + tunnelUrl + '</span>');
