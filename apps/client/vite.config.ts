@@ -9,7 +9,7 @@ export default defineConfig({
   envDir: '../../',
   server: {
     port: 5173,
-    allowedHosts: ['.discordsays.com', '.trycloudflare.com', '.ngrok-free.dev'],
+    allowedHosts: ['.discordsays.com', '.trycloudflare.com', '.devtunnels.ms'],
     hmr: {
       clientPort: 443,
     },
