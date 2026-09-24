@@ -5,7 +5,7 @@ const VITE_SERVER_URL = import.meta.env.VITE_SERVER_URL || 'https://discord-clie
 const socket: Socket = io(VITE_SERVER_URL, {
   autoConnect: false,
   path: '/ws/',
-  transports: ['polling', 'websocket'],
+  transports: ['websocket', 'polling'],
 });
 
 export const connectSocket = (tokenPayload?: any) => {

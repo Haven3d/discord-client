@@ -18,8 +18,8 @@ const io = new Server(httpServer, {
     origin: "*",
     methods: ["GET", "POST"]
   },
-  // Compatível com Vercel serverless — polling funciona melhor que websocket
-  transports: ['polling', 'websocket'],
+  // Habilitar WebSockets nativos (remover a restrição de apenas polling)
+  transports: ['websocket', 'polling'],
   pingTimeout: 60000,
   pingInterval: 25000,
 });
@@ -40,19 +40,9 @@ app.get('/health', (_req, res) => {
 
 setupSocketHandlers(io);
 
-// Configuração para rodar localmente durante o desenvolvimento
-const PORT = config.port;
-if (process.env.NODE_ENV !== 'production') {
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 Server rodando na porta ${PORT}`);
-    console.log(`📡 Origens permitidas: ${config.allowedOrigins.join(', ')}`);
-  });
-}
+const PORT = process.env.PORT || config.port || 3001;
 
-// CORREÇÃO CRÍTICA PARA VERCEL SERVERLESS
-// Exportamos uma função handler em vez do 'app' (Express).
-// Isso garante que o tráfego HTTP chegue ao servidor base, permitindo 
-// que o motor do Socket.io intercepte a rota '/ws/' com sucesso.
-export default function handler(req: any, res: any) {
-  httpServer.emit('request', req, res);
-}
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Servidor contínuo rodando na porta ${PORT}`);
+  console.log(`📡 Origens permitidas: ${config.allowedOrigins.join(', ')}`);
+});

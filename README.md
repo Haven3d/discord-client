@@ -107,10 +107,13 @@ Na raiz do monorepo, utilize os seguintes scripts:
 
 ## 🚀 Guia de Deploy em Produção
 
-### 1. Servidor de Sinalização (Railway)
+### ⚠️ ATENÇÃO CRÍTICA: Não hospede o backend (apps/server) na Vercel!
+A Vercel utiliza funções "Serverless" que morrem instantaneamente, o que destrói a sessão em memória do `Socket.io`, causando perda de estado e erros `400 Bad Request` na conexão WebSocket. Os frontends (`apps/client` e `apps/capture`) podem ficar na Vercel tranquilamente, mas o backend DEVE ir para um serviço de hospedagem contínua como Render, Railway ou Fly.io.
 
-1. Crie um novo projeto no [Railway](https://railway.app/) conectado ao repositório GitHub.
-2. Nas configurações do serviço:
+### 1. Servidor de Sinalização (Render.com ou Railway.app)
+
+1. Crie uma conta gratuita no [Render.com](https://render.com/) ou [Railway.app](https://railway.app/).
+2. Conecte este repositório do GitHub e crie um "Web Service" apontando **APENAS** para a raiz `apps/server`.
    - **Root Directory**: `apps/server` (ou mantenha na raiz configurando os scripts de build).
    - **Build Command**: `npm install && npm run build`
    - **Start Command**: `npm run start` (ou `node dist/index.js`)
