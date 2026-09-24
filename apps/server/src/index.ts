@@ -22,6 +22,8 @@ const io = new Server(httpServer, {
   transports: ['polling', 'websocket'],
   pingTimeout: 60000,
   pingInterval: 25000,
+  // Keyframe VP8 1080p pode chegar a 200KB+; o padrão é 1MB, vamos para 4MB
+  maxHttpBufferSize: 4 * 1024 * 1024,
 });
 
 // Request logging for debugging proxy behavior

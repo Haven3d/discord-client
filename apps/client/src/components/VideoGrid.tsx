@@ -1,19 +1,29 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { socketService } from '../services/socket';
 
 interface VideoGridProps {
   activeStreamers?: string[];
 }
 
+/**
+ * Player WebCodecs — recebe config e chunks separadamente.
+ * 
+ * Fluxo:
+ * 1. Recebe 'video-config' → configura o VideoDecoder
+ * 2. Recebe 'video-chunk' → decodifica e pinta no canvas
+ */
 const WebCodecPlayer = ({ streamerId }: { streamerId: string }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const decoderRef = useRef<VideoDecoder | null>(null);
+  const configuredRef = useRef(false);
+  const [status, setStatus] = useState<string>('aguardando config...');
 
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    decoderRef.current = new VideoDecoder({
+    // Criar o decoder
+    const decoder = new VideoDecoder({
       output: (frame) => {
         const canvas = canvasRef.current;
         if (canvas) {
@@ -28,54 +38,103 @@ const WebCodecPlayer = ({ streamerId }: { streamerId: string }) => {
         }
         frame.close();
       },
-      error: (e) => console.error('VideoDecoder error:', e),
+      error: (e) => {
+        console.error('[WebCodecPlayer] Decoder error:', e);
+        setStatus(`erro: ${e.message}`);
+      },
     });
+    decoderRef.current = decoder;
 
-    const onChunk = (payload: any) => {
-      if (payload.from !== streamerId || !decoderRef.current) return;
+    // Handler para config (vem antes dos chunks)
+    const onConfig = (payload: any) => {
+      if (payload.from !== streamerId) return;
+      if (decoder.state === 'closed') return;
 
-      if (payload.config && decoderRef.current.state === 'unconfigured') {
-        decoderRef.current.configure({
-          codec: 'vp8',
-          optimizeForLatency: true,
-          ...payload.config,
-        });
+      const decoderConfig: VideoDecoderConfig = {
+        codec: payload.codec,
+        codedWidth: payload.codedWidth,
+        codedHeight: payload.codedHeight,
+        optimizeForLatency: true,
+      };
+
+      // Se tiver description (H.264), decodificar de base64
+      if (payload.description) {
+        const bin = atob(payload.description);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        decoderConfig.description = bytes;
       }
 
-      if (decoderRef.current.state === 'configured') {
-        try {
-          decoderRef.current.decode(new EncodedVideoChunk({
-            type: payload.type,
-            timestamp: payload.timestamp,
-            data: payload.data
-          }));
-        } catch (e) {
-          console.warn('Decode falhou, aguardando próximo frame');
-        }
+      try {
+        decoder.configure(decoderConfig);
+        configuredRef.current = true;
+        setStatus(`configurado: ${payload.codec} ${payload.codedWidth}x${payload.codedHeight}`);
+      } catch (e: any) {
+        console.error('[WebCodecPlayer] Configure failed:', e);
+        setStatus(`codec não suportado: ${payload.codec}`);
       }
     };
 
+    // Handler para chunks de vídeo
+    const onChunk = (payload: any) => {
+      if (payload.from !== streamerId) return;
+      if (!decoderRef.current || decoderRef.current.state !== 'configured') return;
+
+      try {
+        const chunk = new EncodedVideoChunk({
+          type: payload.type,        // 'key' ou 'delta'
+          timestamp: payload.timestamp,
+          data: payload.data,        // ArrayBuffer — Socket.io deserializa automaticamente
+        });
+        decoderRef.current.decode(chunk);
+      } catch (e) {
+        // Chunk corrompido ou fora de ordem — esperar o próximo keyframe
+      }
+    };
+
+    const onUserLeft = ({ socketId }: { socketId: string }) => {
+      if (socketId === streamerId) {
+        setStatus('transmissão encerrada');
+      }
+    };
+
+    socket.on('video-config', onConfig);
     socket.on('video-chunk', onChunk);
+    socket.on('user-left', onUserLeft);
+    socket.on('stream-stopped', onUserLeft);
 
     return () => {
+      socket.off('video-config', onConfig);
       socket.off('video-chunk', onChunk);
-      if (decoderRef.current && decoderRef.current.state !== 'closed') {
-        try { decoderRef.current.close(); } catch (e) {}
+      socket.off('user-left', onUserLeft);
+      socket.off('stream-stopped', onUserLeft);
+      configuredRef.current = false;
+      if (decoder.state !== 'closed') {
+        try { decoder.close(); } catch (e) {}
       }
     };
   }, [streamerId]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: '100%',
-        maxHeight: '100%',
-        objectFit: 'contain',
-        backgroundColor: '#000',
-        borderRadius: '8px'
-      }}
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: '100%',
+          maxHeight: '100%',
+          objectFit: 'contain',
+          backgroundColor: '#000',
+          borderRadius: '8px'
+        }}
+      />
+      <div style={{
+        position: 'absolute', bottom: '8px', left: '8px',
+        backgroundColor: 'rgba(0,0,0,0.7)', padding: '4px 8px',
+        borderRadius: '4px', fontSize: '10px', color: '#0f0',
+      }}>
+        {status}
+      </div>
+    </div>
   );
 };
 

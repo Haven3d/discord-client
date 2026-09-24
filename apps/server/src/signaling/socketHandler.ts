@@ -72,6 +72,11 @@ export function setupSocketHandlers(io: Server) {
       socket.to(channelId).emit('stream-stopped', { socketId: socket.id });
     });
 
+    // Rota expressa para WebCodecs: configuração do decoder vai primeiro
+    socket.on('video-config', (payload: any) => {
+      socket.to(payload.channelId).emit('video-config', { ...payload, from: socket.id });
+    });
+
     // Rota expressa para WebCodecs: o vídeo codificado passa por aqui
     socket.on('video-chunk', (payload: any) => {
       socket.to(payload.channelId).emit('video-chunk', { ...payload, from: socket.id });
