@@ -38,7 +38,8 @@ export const useDiscordSdk = () => {
         });
 
         if (!response.ok) {
-          throw new Error('Falha ao obter token');
+          const errText = await response.text();
+          throw new Error(`Falha ao obter token: ${response.status} - ${errText}`);
         }
 
         const { access_token } = await response.json();

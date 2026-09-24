@@ -1,0 +1,94 @@
+=============================================================================
+RELATÓRIO DE DESENVOLVIMENTO: DISCORD SCREEN SHARE ACTIVITY (Transmissão-Haven)
+=============================================================================
+Data de geração: 23 de Setembro de 2026
+
+1. OBJETIVO DO PROJETO
+-----------------------------------------------------------------------------
+Criar uma "Atividade" (Activity) nativa para o Discord focada em compartilhamento 
+e captura de tela de alta qualidade (1080p/4K 60fps). O sistema foi dividido 
+em três partes independentes (Monorepo):
+- Client: O iframe que roda dentro do Discord.
+- Capture: Um site externo para o usuário selecionar e transmitir a tela.
+- Server: O backend responsável por conectar (via WebSockets e WebRTC) quem 
+  está transmitindo com quem está assistindo.
+
+
+2. ARQUITETURA INICIAL E MUDANÇA PARA A VERCEL
+-----------------------------------------------------------------------------
+No início, planejamos hospedar o frontend na Vercel e o backend no Railway.
+- Problema: O usuário solicitou que todo o ecossistema (os 3 apps) fosse 
+  hospedado inteiramente na Vercel, automatizado por um único repositório 
+  no GitHub (discord-client).
+- Solução: Refatoramos o backend (Server) que usava Express padrão para 
+  funcionar no ambiente Serverless da Vercel. Criamos arquivos `vercel.json` 
+  para cada projeto e alteramos o comportamento do Socket.io para priorizar 
+  'polling' (já que a Vercel corta conexões WebSocket muito longas). Conectamos
+  o projeto ao GitHub para deploys automáticos.
+
+
+3. DESAFIOS DE COMPILAÇÃO (BUILD) NA VERCEL
+-----------------------------------------------------------------------------
+Logo após o primeiro envio ao GitHub, a Vercel acusou erros ao tentar 
+compilar os projetos em TypeScript.
+
+- Problema 1: O "Client" falhou porque não reconhecia a tipagem `import.meta.env` 
+  padrão do Vite.
+- Solução 1: Criamos o arquivo de declaração `vite-env.d.ts`.
+  
+- Problema 2: O "Capture" falhou devido a regras rígidas do TypeScript (variáveis 
+  não utilizadas, imports do React desnecessários e incompatibilidade de tipos 
+  no `socketService.joinRoom`).
+- Solução 2: Limpamos todos os imports do React, renomeamos a variável não 
+  utilizada para `_channelId` e corrigimos o tipo do usuário para bater com 
+  o modelo exigido pelo backend.
+
+- Problema 3: O usuário clicou em "Reimplantar", mas o erro no Client continuou.
+- Solução 3: Identificamos que o comando Git anterior havia enviado apenas a 
+  pasta do Capture, deixando a correção do Client para trás. Fizemos um novo 
+  commit completo (`git add -A`) garantindo que todos os arquivos chegassem 
+  à Vercel. Todos os 3 projetos compilaram com sucesso!
+
+
+4. CONFIGURAÇÃO DE AMBIENTE E O ERRO "FAILED TO FETCH"
+-----------------------------------------------------------------------------
+Com tudo no ar, configuramos as Variáveis de Ambiente (IDs do Discord e URLs). 
+Ao testar a Atividade no Discord, o iframe carregou a interface, mas exibiu o 
+erro vermelho "Erro: Failed to fetch".
+
+- Problema: O navegador do Discord abortou a tentativa do Front-end de se 
+  comunicar com o nosso Backend na Vercel.
+- Investigação: 
+  1. Testamos o `/health` do servidor: Ele estava online.
+  2. Inspecionamos a resposta de CORS: O servidor estava liberando o acesso 
+     corretamente para `*.discordsays.com`.
+  3. O usuário usou o DevTools do Google Chrome para inspecionar a rede.
+- Causa Raiz: O Discord possui um "Content Security Policy (CSP)" extremamente 
+  rígido dentro do seu iframe, bloqueando por padrão qualquer conexão HTTP/Fetch 
+  para domínios externos (como `.vercel.app`).
+- Solução: Decidimos usar a ferramenta oficial do Discord chamada "Mapeamento 
+  de Caminho Proxy". Alteramos o código Front-end para parar de fazer chamadas 
+  diretas à Vercel e passar a fazer chamadas relativas (para o próprio túnel 
+  do Discord).
+
+
+5. O ÚLTIMO OBSTÁCULO: O PONTO NO MAPEAMENTO PROXY
+-----------------------------------------------------------------------------
+Para finalizar o túnel do Discord, orientamos o usuário a criar dois 
+mapeamentos no Portal de Desenvolvedor do Discord: `/api` e `/socket.io`.
+
+- Problema: O portal do Discord apresentou erro ao salvar o formulário e 
+  destacou o campo `/socket.io` em vermelho.
+- Causa Raiz: A documentação do Discord não permite caracteres especiais como 
+  ponto (`.`) nos prefixos de mapeamento proxy (apenas letras minúsculas, 
+  números e hifens).
+- Solução: Mudamos toda a rota de conexão em tempo real do nosso servidor e 
+  do cliente de `/socket.io` para `/ws/`. Enviamos a correção para o GitHub 
+  e instruímos o usuário a configurar o mapeamento usando `/ws`.
+
+
+=============================================================================
+STATUS ATUAL:
+Aguardando a confirmação do teste da atividade no Discord após a configuração 
+do mapeamento `/ws` no painel de desenvolvedor.
+=============================================================================

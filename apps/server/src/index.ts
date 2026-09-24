@@ -24,7 +24,14 @@ const io = new Server(httpServer, {
   pingInterval: 25000,
 });
 
+// Request logging for debugging proxy behavior
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
+  next();
+});
+
 app.use('/api', authRouter);
+app.use('/', authRouter); // Catch-all just in case Discord strips the /api prefix
 
 // Health check
 app.get('/health', (_req, res) => {
