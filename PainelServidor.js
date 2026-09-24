@@ -1,6 +1,8 @@
 const http = require('http');
 const https = require('https');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const port = 4000;
 
@@ -8,10 +10,25 @@ let npmProcess = null;
 let cfProcess = null;
 let logs = [];
 let tunnelUrl = "";
-let discordUpdateStatus = ""; // "", "updating", "success", "error"
+let discordUpdateStatus = "";
 
 // ============================================
-// Discord API: Auto-update URL Mapping
+// Lê o Bot Token do .env
+// ============================================
+function getBotToken() {
+    try {
+        const envPath = path.join(__dirname, '.env');
+        if (fs.existsSync(envPath)) {
+            const envContent = fs.readFileSync(envPath, 'utf-8');
+            const match = envContent.match(/DISCORD_BOT_TOKEN=(.+)/);
+            if (match) return match[1].trim();
+        }
+    } catch (e) {}
+    return '';
+}
+
+// ============================================
+// HTTPS Request helper
 // ============================================
 function httpsRequest(options, postData) {
     return new Promise((resolve, reject) => {
@@ -32,29 +49,22 @@ function httpsRequest(options, postData) {
     });
 }
 
+// ============================================
+// Atualiza URL mapping no Discord via Bot Token
+// ============================================
 async function updateDiscordUrlMapping(newUrl) {
+    const botToken = getBotToken();
+    if (!botToken) {
+        discordUpdateStatus = "error";
+        logs.push('<span style="color: #f04747">❌ Bot Token não encontrado no .env</span>');
+        logs.push('<span style="color: #faa61a">⚠️ Atualize MANUALMENTE no Discord Developer Portal: / → ' + newUrl + '</span>');
+        return;
+    }
+
     discordUpdateStatus = "updating";
-    logs.push('<span style="color: #faa61a">⏳ Atualizando mapeamento no Discord automaticamente...</span>');
+    logs.push('<span style="color: #faa61a">⏳ Atualizando Discord automaticamente...</span>');
     
     try {
-        // Read Bot Token from .env
-        const fs = require('fs');
-        const path = require('path');
-        const envPath = path.join(__dirname, '.env');
-        let botToken = '';
-        if (fs.existsSync(envPath)) {
-            const envContent = fs.readFileSync(envPath, 'utf-8');
-            const match = envContent.match(/DISCORD_BOT_TOKEN=(.+)/);
-            if (match) botToken = match[1].trim();
-        }
-        
-        if (!botToken) {
-            discordUpdateStatus = "error";
-            logs.push('<span style="color: #f04747">❌ Bot Token não encontrado no .env</span>');
-            logs.push('<span style="color: #faa61a">⚠️ Atualize MANUALMENTE: / → ' + newUrl + '</span>');
-            return false;
-        }
-        
         const patchData = JSON.stringify({
             embedded_activity_config: {
                 url_mappings: [{ prefix: '/', target: newUrl }]
@@ -74,19 +84,58 @@ async function updateDiscordUrlMapping(newUrl) {
         
         if (result.status === 200) {
             discordUpdateStatus = "success";
-            logs.push('<span style="color: #43b581">✅ DISCORD ATUALIZADO! Mapeamento "/" → ' + newUrl + '</span>');
-            return true;
+            logs.push('<span style="color: #43b581">✅ DISCORD ATUALIZADO! "/" → ' + newUrl + '</span>');
         } else {
             discordUpdateStatus = "error";
-            logs.push('<span style="color: #f04747">❌ Erro ao atualizar Discord (status ' + result.status + ')</span>');
+            logs.push('<span style="color: #f04747">❌ Erro Discord API (status ' + result.status + '): ' + JSON.stringify(result.data).substring(0, 200) + '</span>');
             logs.push('<span style="color: #faa61a">⚠️ Atualize MANUALMENTE: / → ' + newUrl + '</span>');
-            return false;
         }
     } catch (err) {
         discordUpdateStatus = "error";
         logs.push('<span style="color: #f04747">❌ Erro: ' + err.message + '</span>');
         logs.push('<span style="color: #faa61a">⚠️ Atualize MANUALMENTE: / → ' + newUrl + '</span>');
-        return false;
+    }
+}
+
+// ============================================
+// MATA TODOS os processos do projeto
+// ============================================
+function killAllProjectProcesses() {
+    try { execSync('taskkill /F /IM cloudflared.exe 2>nul', { stdio: 'ignore' }); } catch(e){}
+    try { execSync('taskkill /F /IM ngrok.exe 2>nul', { stdio: 'ignore' }); } catch(e){}
+    
+    // Mata todos os node.exe EXCETO o próprio painel (PID atual)
+    const myPid = process.pid;
+    try {
+        const result = execSync('tasklist /FI "IMAGENAME eq node.exe" /FO CSV /NH', { encoding: 'utf-8' });
+        const lines = result.trim().split('\n');
+        for (const line of lines) {
+            const match = line.match(/"node\.exe","(\d+)"/);
+            if (match) {
+                const pid = parseInt(match[1]);
+                if (pid !== myPid) {
+                    try { execSync(`taskkill /F /PID ${pid} 2>nul`, { stdio: 'ignore' }); } catch(e){}
+                }
+            }
+        }
+    } catch(e) {
+        // Fallback: mata tudo exceto a gente
+        try { execSync('taskkill /F /IM node.exe 2>nul', { stdio: 'ignore' }); } catch(e){}
+    }
+    
+    // Libera as portas 3001, 5173, 5174
+    for (const p of [3001, 5173, 5174]) {
+        try {
+            const netstat = execSync(`netstat -ano | findstr :${p} | findstr LISTENING`, { encoding: 'utf-8' });
+            const lines = netstat.trim().split('\n');
+            for (const line of lines) {
+                const parts = line.trim().split(/\s+/);
+                const pid = parseInt(parts[parts.length - 1]);
+                if (pid && pid !== myPid) {
+                    try { execSync(`taskkill /F /PID ${pid} 2>nul`, { stdio: 'ignore' }); } catch(e){}
+                }
+            }
+        } catch(e){}
     }
 }
 
@@ -143,9 +192,12 @@ const htmlPage = `
         let isRunning = false;
         
         async function toggle() {
+            document.getElementById('main-btn').disabled = true;
+            document.getElementById('main-btn').innerText = '⏳ Aguarde...';
             const res = await fetch('/toggle', { method: 'POST' });
             const data = await res.json();
             isRunning = data.isRunning;
+            document.getElementById('main-btn').disabled = false;
             updateUI();
         }
 
@@ -197,7 +249,6 @@ const htmlPage = `
                     copyBtn.disabled = true;
                 }
                 
-                // Discord update status indicator
                 if (data.discordUpdateStatus === 'updating') {
                     discordStatusEl.style.display = 'block';
                     discordStatusEl.className = 'status-updating';
@@ -205,7 +256,7 @@ const htmlPage = `
                 } else if (data.discordUpdateStatus === 'success') {
                     discordStatusEl.style.display = 'block';
                     discordStatusEl.className = 'status-success';
-                    discordStatusEl.innerText = '✅ Discord atualizado automaticamente! Atividade pronta.';
+                    discordStatusEl.innerText = '✅ Discord atualizado! Atividade pronta.';
                 } else if (data.discordUpdateStatus === 'error') {
                     discordStatusEl.style.display = 'block';
                     discordStatusEl.className = 'status-error';
@@ -214,14 +265,12 @@ const htmlPage = `
                     discordStatusEl.style.display = 'none';
                 }
 
-                if (data.logs.length > 0) {
+                if (data.logs && data.logs.length > 0) {
                     const logsDiv = document.getElementById('logs');
                     logsDiv.innerHTML = data.logs.join('<br>');
                     logsDiv.scrollTop = logsDiv.scrollHeight;
                 }
-            } catch (e) {
-                // Backend fora do ar
-            }
+            } catch (e) {}
         }, 1000);
     </script>
 </body>
@@ -234,52 +283,69 @@ const server = http.createServer((req, res) => {
         res.end(htmlPage);
     } else if (req.method === 'POST' && req.url === '/toggle') {
         if (npmProcess || cfProcess) {
-            // Stop
-            if (npmProcess) spawn('taskkill', ['/F', '/T', '/PID', npmProcess.pid]);
-            if (cfProcess) spawn('taskkill', ['/F', '/T', '/PID', cfProcess.pid]);
+            // ========== DESLIGAR ==========
+            // Mata TUDO: node filhos, cloudflared, ngrok, portas
+            logs.push("🛑 Desligando todos os processos...");
+            
             npmProcess = null;
             cfProcess = null;
             tunnelUrl = "";
             discordUpdateStatus = "";
-            logs.push("🛑 Servidores desligados com sucesso.");
+            
+            killAllProjectProcesses();
+            
+            logs.push("✅ Todos os processos foram encerrados.");
         } else {
-            // Start
-            logs = ["🚀 Iniciando sistema base (Vite + Socket.io)..."];
+            // ========== LIGAR ==========
+            // Primeiro limpa qualquer processo órfão de sessões anteriores
+            killAllProjectProcesses();
+            
+            logs = ["🚀 Iniciando sistema..."];
             tunnelUrl = "";
             discordUpdateStatus = "";
             
-            npmProcess = spawn('npm', ['run', 'dev'], { shell: true });
+            // 1. Inicia o Vite + Socket.io
+            npmProcess = spawn('npm', ['run', 'dev'], { shell: true, cwd: __dirname });
             npmProcess.stdout.on('data', d => {
                 const txt = d.toString().trim();
                 if(txt) logs.push('[Local] ' + txt.replace(/\n/g, '<br>[Local] '));
             });
-            
-            // Cloudflare Quick Tunnel (sem tela anti-phishing no Discord!)
-            cfProcess = spawn('.\\cloudflared.exe', ['tunnel', '--url', 'http://localhost:5173'], { shell: true });
-            
-            cfProcess.stdout.on('data', d => {
-                const line = d.toString().trim();
-                if(line) logs.push('[Cloudflare] ' + line);
+            npmProcess.stderr.on('data', d => {
+                const txt = d.toString().trim();
+                if(txt && !txt.includes('DeprecationWarning')) logs.push('[Local] ' + txt);
             });
-            cfProcess.stderr.on('data', d => {
-                const line = d.toString().trim();
-                if(line) logs.push('[Cloudflare] ' + line);
+            
+            // 2. Aguarda 3 segundos e depois inicia o Cloudflare tunnel
+            logs.push("⏳ Aguardando Vite iniciar (3s)...");
+            setTimeout(() => {
+                logs.push("🌐 Iniciando túnel Cloudflare...");
+                cfProcess = spawn(path.join(__dirname, 'cloudflared.exe'), ['tunnel', '--url', 'http://localhost:5173'], { shell: false });
                 
-                // Detect Cloudflare tunnel URL
-                const match = line.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-                if (match && tunnelUrl !== match[0]) {
-                    tunnelUrl = match[0];
-                    logs.push('<span style="color: #fff">🔗 TÚNEL CLOUDFLARE: ' + tunnelUrl + '</span>');
+                cfProcess.stdout.on('data', d => {
+                    const line = d.toString().trim();
+                    if(line) logs.push('[Cloudflare] ' + line);
+                });
+                cfProcess.stderr.on('data', d => {
+                    const line = d.toString().trim();
+                    if(line) logs.push('[Cloudflare] ' + line);
                     
-                    // Auto-update Discord URL mapping!
-                    updateDiscordUrlMapping(tunnelUrl);
-                }
-            });
+                    const match = line.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+                    if (match && tunnelUrl !== match[0]) {
+                        tunnelUrl = match[0];
+                        logs.push('<span style="color: #43b581">🔗 TÚNEL ATIVO: ' + tunnelUrl + '</span>');
+                        updateDiscordUrlMapping(tunnelUrl);
+                    }
+                });
+                
+                cfProcess.on('exit', (code) => {
+                    logs.push('[Cloudflare] Processo encerrado (code: ' + code + ')');
+                });
+            }, 3000);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ isRunning: !!(npmProcess || cfProcess) }));
     } else if (req.method === 'GET' && req.url === '/status') {
-        if (logs.length > 80) logs = logs.slice(logs.length - 80);
+        if (logs.length > 100) logs = logs.slice(logs.length - 100);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ isRunning: !!(npmProcess || cfProcess), tunnelUrl, discordUpdateStatus, logs }));
     } else {
