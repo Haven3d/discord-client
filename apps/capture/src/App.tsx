@@ -35,29 +35,34 @@ function App() {
       
       connectSocket(sessionData);
 
-      // Listener de inicialização do sender (agora sem joinRoom manual!)
-      socket.on('connect', () => {
+      const onConnect = () => {
         webrtcSenderRef.current = new WebRTCSender(socket, sessionData.room);
-        if (screenStream) {
-          webrtcSenderRef.current.setLocalStream(screenStream, qualityPreset.bitrate);
-        }
-      });
+      };
 
-      socket.on('room-participants', (participants: any[]) => {
+      const onRoomParticipants = (participants: any[]) => {
         // Quantidade de pessoas assistindo (não contar com a própria captura)
         setViewers(participants.length > 0 ? participants.length - 1 : 0);
-      });
-      socket.on('user-joined', () => setViewers(v => v + 1));
-      socket.on('user-left', () => setViewers(v => Math.max(0, v - 1)));
+      };
       
+      const onUserJoined = () => setViewers(v => v + 1);
+      const onUserLeft = () => setViewers(v => Math.max(0, v - 1));
+
+      socket.on('connect', onConnect);
+      socket.on('room-participants', onRoomParticipants);
+      socket.on('user-joined', onUserJoined);
+      socket.on('user-left', onUserLeft);
+      
+      return () => {
+        socket.off('connect', onConnect);
+        socket.off('room-participants', onRoomParticipants);
+        socket.off('user-joined', onUserJoined);
+        socket.off('user-left', onUserLeft);
+        disconnectSocket();
+      };
     } catch (e) {
       setError('Token corrompido ou formato inválido.');
     }
-
-    return () => {
-      disconnectSocket();
-    };
-  }, [screenStream, qualityPreset]);
+  }, []); // <-- Array vazio! Apenas conecta uma vez ao abrir a aba.
 
   const handleStartCapture = async () => {
     try {

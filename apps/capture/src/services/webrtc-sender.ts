@@ -105,17 +105,7 @@ export class WebRTCSender {
       }
     };
 
-    try {
-      // The initial offer is now mostly handled by onnegotiationneeded, 
-      // but we force one here just in case for older browsers.
-      const offer = await pc.createOffer();
-      offer.sdp = this.mungeSDP(offer.sdp || '', this.bitrate);
-      await pc.setLocalDescription(offer);
-      sendOffer(viewerId, pc.localDescription!);
-    } catch (error) {
-      console.error('Error creating offer:', error);
-    }
-
+    // O evento pc.onnegotiationneeded cria a oferta automaticamente!
     return pc;
   }
 
