@@ -72,6 +72,11 @@ export function setupSocketHandlers(io: Server) {
       socket.to(channelId).emit('stream-stopped', { socketId: socket.id });
     });
 
+    // Rota expressa para WebCodecs: o vídeo codificado passa por aqui
+    socket.on('video-chunk', (payload: any) => {
+      socket.to(payload.channelId).emit('video-chunk', { ...payload, from: socket.id });
+    });
+
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`);
       

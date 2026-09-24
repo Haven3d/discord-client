@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import socket, { connectSocket, disconnectSocket } from './services/socket';
-import { WebRTCSender } from './services/webrtc-sender';
+import { WebCodecsSender } from './services/webcodecs-sender';
 import { CapturePanel } from './components/CapturePanel';
 import { CameraPreview } from './components/CameraPreview';
 import { StreamStatus } from './components/StreamStatus';
@@ -14,7 +14,7 @@ function App() {
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>(QUALITY_PRESETS[0]);
   const [fps, setFps] = useState<number>(30);
   
-  const webrtcSenderRef = useRef<WebRTCSender | null>(null);
+  const webcodecsSenderRef = useRef<WebCodecsSender | null>(null);
   const [viewers, setViewers] = useState(0);
 
   const [room, setRoom] = useState<string | null>(null);
@@ -33,8 +33,8 @@ function App() {
       const sessionData = JSON.parse(decodeURIComponent(escape(atob(tokenBase64))));
       setRoom(sessionData.room);
       
-      // 1. Inicializa o Sender ANTES de conectar para ele registrar os listeners (como room-participants) a tempo
-      webrtcSenderRef.current = new WebRTCSender(socket, sessionData.room);
+      // 1. Inicializa o Sender ANTES de conectar para ele registrar os listeners
+      webcodecsSenderRef.current = new WebCodecsSender(socket, sessionData.room);
       
       // 2. Conecta no servidor
       connectSocket(sessionData);
@@ -69,8 +69,8 @@ function App() {
       setScreenStream(stream);
       setIsStreaming(true);
       
-      if (webrtcSenderRef.current) {
-        webrtcSenderRef.current.setLocalStream(stream, qualityPreset.bitrate);
+      if (webcodecsSenderRef.current) {
+        webcodecsSenderRef.current.start(stream, qualityPreset.bitrate);
       }
       
       if (room) {
@@ -96,8 +96,8 @@ function App() {
       socket.emit('stop-stream', { channelId: room });
     }
     
-    if (webrtcSenderRef.current) {
-      // webrtcSenderRef.current.closeAll(); // Optamos por não destruir tudo, apenas para de enviar tracks.
+    if (webcodecsSenderRef.current) {
+       webcodecsSenderRef.current.stop();
     }
   };
 

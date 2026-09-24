@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useDiscordSdk } from './hooks/useDiscordSdk';
-import { useWebRTC } from './hooks/useWebRTC';
+import { useWebCodecs } from './hooks/useWebCodecs';
 import { VideoGrid } from './components/VideoGrid';
 import { StartButton } from './components/StartButton';
 import { UserAvatar } from './components/UserAvatar';
@@ -10,7 +10,7 @@ import './styles/global.css';
 
 const App: React.FC = () => {
   const { auth, channelId, discordSdk, isReady, error } = useDiscordSdk();
-  const { remoteStreams, isConnected } = useWebRTC();
+  const { activeStreamers, isConnected } = useWebCodecs();
 
   const [isSocketConnected, setIsSocketConnected] = React.useState(false);
   const [socketError, setSocketError] = React.useState('');
@@ -80,7 +80,7 @@ const App: React.FC = () => {
       </header>
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-        <VideoGrid remoteStreams={remoteStreams} />
+        <VideoGrid activeStreamers={activeStreamers} />
         
         <div style={{ padding: '16px', zIndex: 10 }}>
           <ControlPanel />
@@ -91,8 +91,8 @@ const App: React.FC = () => {
           <p>🔧 DIAGNÓSTICO DO SISTEMA</p>
           <p>Socket.io: {isSocketConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
           {socketError && <p style={{ color: '#f87171' }}>└─ Erro: {socketError}</p>}
-          <p>WebRTC: {isConnected ? '✅ Conectado' : '⌛ Aguardando'}</p>
-          <p>Faixas (Vídeos): {remoteStreams.length}</p>
+          <p>WebCodecs: {isConnected ? '✅ Recebendo' : '⌛ Aguardando'}</p>
+          <p>Telas ativas: {activeStreamers.length}</p>
           <p>Proxy: {import.meta.env.DEV ? 'Local' : 'Discord CDN'}</p>
         </div>
       </main>
