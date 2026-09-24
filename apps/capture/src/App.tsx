@@ -33,11 +33,11 @@ function App() {
       const sessionData = JSON.parse(decodeURIComponent(escape(atob(tokenBase64))));
       setRoom(sessionData.room);
       
+      // 1. Inicializa o Sender ANTES de conectar para ele registrar os listeners (como room-participants) a tempo
+      webrtcSenderRef.current = new WebRTCSender(socket, sessionData.room);
+      
+      // 2. Conecta no servidor
       connectSocket(sessionData);
-
-      const onConnect = () => {
-        webrtcSenderRef.current = new WebRTCSender(socket, sessionData.room);
-      };
 
       const onRoomParticipants = (participants: any[]) => {
         // Quantidade de pessoas assistindo (não contar com a própria captura)
@@ -47,13 +47,11 @@ function App() {
       const onUserJoined = () => setViewers(v => v + 1);
       const onUserLeft = () => setViewers(v => Math.max(0, v - 1));
 
-      socket.on('connect', onConnect);
       socket.on('room-participants', onRoomParticipants);
       socket.on('user-joined', onUserJoined);
       socket.on('user-left', onUserLeft);
       
       return () => {
-        socket.off('connect', onConnect);
         socket.off('room-participants', onRoomParticipants);
         socket.off('user-joined', onUserJoined);
         socket.off('user-left', onUserLeft);

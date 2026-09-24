@@ -94,15 +94,20 @@ export class WebRTCSender {
       }
     };
 
-    pc.onnegotiationneeded = async () => {
-      try {
-        const offer = await pc.createOffer();
-        offer.sdp = this.mungeSDP(offer.sdp || '', this.bitrate);
-        await pc.setLocalDescription(offer);
-        sendOffer(viewerId, pc.localDescription!);
-      } catch (error) {
-        console.error('Error during renegotiation:', error);
-      }
+    let negotiationTimeout: any;
+
+    pc.onnegotiationneeded = () => {
+      clearTimeout(negotiationTimeout);
+      negotiationTimeout = setTimeout(async () => {
+        try {
+          const offer = await pc.createOffer();
+          offer.sdp = this.mungeSDP(offer.sdp || '', this.bitrate);
+          await pc.setLocalDescription(offer);
+          sendOffer(viewerId, pc.localDescription!);
+        } catch (error) {
+          console.error('Error during renegotiation:', error);
+        }
+      }, 50);
     };
 
     // O evento pc.onnegotiationneeded cria a oferta automaticamente!
