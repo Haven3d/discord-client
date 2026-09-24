@@ -11,7 +11,7 @@ export const connectSocket = (tokenPayload?: any) => {
     socket = io(finalUrl, {
       path: '/ws/',
       auth: tokenPayload ? { token: tokenPayload } : undefined,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
     });
 
     socket.on('connect_error', (err) => {

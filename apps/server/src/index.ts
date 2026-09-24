@@ -18,8 +18,8 @@ const io = new Server(httpServer, {
     origin: "*",
     methods: ["GET", "POST"]
   },
-  // Habilitar WebSockets nativos (remover a restrição de apenas polling)
-  transports: ['websocket', 'polling'],
+  // Habilitar WebSockets nativos e Polling
+  transports: ['polling', 'websocket'],
   pingTimeout: 60000,
   pingInterval: 25000,
 });

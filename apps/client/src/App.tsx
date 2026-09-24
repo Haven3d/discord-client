@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const { remoteStreams, isConnected } = useWebRTC();
 
   const [isSocketConnected, setIsSocketConnected] = React.useState(false);
+  const [socketError, setSocketError] = React.useState('');
 
   useEffect(() => {
     if (isReady && auth && channelId) {
@@ -29,9 +30,15 @@ const App: React.FC = () => {
       connectSocket(tokenString);
       const currentSocket = socketService.getSocket();
       
-      currentSocket?.on('connect', () => setIsSocketConnected(true));
+      currentSocket?.on('connect', () => {
+        setIsSocketConnected(true);
+        setSocketError('');
+      });
       currentSocket?.on('disconnect', () => setIsSocketConnected(false));
-      currentSocket?.on('connect_error', () => setIsSocketConnected(false));
+      currentSocket?.on('connect_error', (err) => {
+        setIsSocketConnected(false);
+        setSocketError(err.message);
+      });
 
       return () => {
         disconnectSocket();
@@ -85,6 +92,7 @@ const App: React.FC = () => {
         <div style={{ position: 'absolute', bottom: '80px', left: '16px', backgroundColor: 'rgba(0,0,0,0.8)', padding: '8px', borderRadius: '4px', fontSize: '10px', color: '#0f0', pointerEvents: 'none', zIndex: 100 }}>
           <p>🔧 DIAGNÓSTICO DO SISTEMA</p>
           <p>Socket.io: {isSocketConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
+          {socketError && <p style={{ color: '#f87171' }}>└─ Erro: {socketError}</p>}
           <p>WebRTC: {isConnected ? '✅ Conectado' : '⌛ Aguardando'}</p>
           <p>Faixas (Vídeos): {remoteStreams.length}</p>
           <p>Proxy: {import.meta.env.DEV ? 'Local' : 'Discord CDN'}</p>
