@@ -40,11 +40,19 @@ app.get('/health', (_req, res) => {
 
 setupSocketHandlers(io);
 
+// Configuração para rodar localmente durante o desenvolvimento
 const PORT = config.port;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server rodando na porta ${PORT}`);
-  console.log(`📡 Origens permitidas: ${config.allowedOrigins.join(', ')}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server rodando na porta ${PORT}`);
+    console.log(`📡 Origens permitidas: ${config.allowedOrigins.join(', ')}`);
+  });
+}
 
-// Exporta para Vercel
-export default app;
+// CORREÇÃO CRÍTICA PARA VERCEL SERVERLESS
+// Exportamos uma função handler em vez do 'app' (Express).
+// Isso garante que o tráfego HTTP chegue ao servidor base, permitindo 
+// que o motor do Socket.io intercepte a rota '/ws/' com sucesso.
+export default function handler(req: any, res: any) {
+  httpServer.emit('request', req, res);
+}
