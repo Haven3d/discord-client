@@ -4,7 +4,8 @@ const VITE_SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:300
 
 const socket: Socket = io(VITE_SERVER_URL, {
   autoConnect: false,
-  transports: ['websocket', 'polling'],
+  path: '/ws/',
+  transports: ['polling', 'websocket'],
 });
 
 export const connectSocket = () => {

@@ -91,8 +91,9 @@ function App() {
 
   return (
     <div className="app-container">
-      <header className="header">
-        <h1>Transmitir Tela - Discord Screen Share</h1>
+      <header className="header" style={{ justifyContent: 'space-between', display: 'flex', width: '100%' }}>
+        <img src="/haven-logo.png" alt="Haven 3D Logo" style={{ height: '40px' }} />
+        <h1 style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>Painel de Transmissão</h1>
       </header>
       
       <main className="main-content">

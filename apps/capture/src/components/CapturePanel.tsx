@@ -33,21 +33,28 @@ export function CapturePanel({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-        <QualitySelector
-          value={qualityPreset}
-          options={QUALITY_PRESETS}
-          onChange={setQualityPreset}
-          disabled={isStreaming}
-        />
-        <select
-          value={fps}
-          onChange={(e) => setFps(Number(e.target.value))}
-          disabled={isStreaming}
-        >
-          <option value={30}>30 FPS</option>
-          <option value={60}>60 FPS</option>
-        </select>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', width: '100%' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Qualidade</label>
+          <QualitySelector
+            value={qualityPreset}
+            options={QUALITY_PRESETS}
+            onChange={setQualityPreset}
+            disabled={isStreaming}
+          />
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Quadros</label>
+          <select
+            value={fps}
+            onChange={(e) => setFps(Number(e.target.value))}
+            disabled={isStreaming}
+            style={{ padding: '0.5rem', borderRadius: '4px', backgroundColor: 'var(--bg-secondary)', color: 'white', border: '1px solid #333' }}
+          >
+            <option value={30}>30 FPS</option>
+            <option value={60}>60 FPS</option>
+          </select>
+        </div>
       </div>
 
       <div className="preview-container">

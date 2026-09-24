@@ -1,10 +1,10 @@
 :root {
-  --bg-primary: #0f0f23;
-  --bg-secondary: #1a1a2e;
-  --bg-card: #16213e;
-  --accent: #f97316;
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #11111b;
+  --bg-card: #181825;
+  --accent: #ff8c00;
   --text-primary: #ffffff;
-  --text-secondary: #a0a0b0;
+  --text-secondary: #a6adc8;
   --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
