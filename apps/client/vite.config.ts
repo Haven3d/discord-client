@@ -16,6 +16,7 @@ export default defineConfig({
   envPrefix: 'VITE_',
   envDir: '../../',
   server: {
+    host: '127.0.0.1',
     port: 5173,
     allowedHosts: ['.discordsays.com', '.trycloudflare.com', '.ngrok-free.dev'],
     hmr: {
