@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import socket, { connectSocket, disconnectSocket, joinRoom } from './services/socket';
+import socket, { connectSocket, disconnectSocket } from './services/socket';
 import { WebRTCSender } from './services/webrtc-sender';
 import { CapturePanel } from './components/CapturePanel';
 import { CameraPreview } from './components/CameraPreview';
@@ -8,8 +8,6 @@ import { QualityPreset, QUALITY_PRESETS, startScreenCapture, stopCapture } from 
 
 function App() {
   const [error, setError] = useState<string | null>(null);
-  const [channelId, setChannelId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   
   const [isStreaming, setIsStreaming] = useState(false);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
@@ -21,38 +19,41 @@ function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const cId = params.get('channelId');
-    const uId = params.get('userId');
+    const tokenBase64 = params.get('t');
 
-    if (!cId || !uId) {
-      setError('Parâmetros inválidos. channelId e userId são obrigatórios.');
+    if (!tokenBase64) {
+      setError('Sessão inválida. O link de transmissão requer um token.');
       return;
     }
 
-    setChannelId(cId);
-    setUserId(uId);
-    connectSocket();
+    try {
+      const sessionData = JSON.parse(atob(tokenBase64));
+      
+      connectSocket(sessionData);
 
-    return () => {
-      disconnectSocket();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (channelId && userId) {
+      // Listener de inicialização do sender (agora sem joinRoom manual!)
       socket.on('connect', () => {
-        const userInfo = { id: userId, username: 'Transmissão', avatar: '' };
-        joinRoom(channelId, userInfo as any);
-        webrtcSenderRef.current = new WebRTCSender(socket, channelId);
+        webrtcSenderRef.current = new WebRTCSender(socket, sessionData.room);
         if (screenStream) {
           webrtcSenderRef.current.setLocalStream(screenStream, qualityPreset.bitrate);
         }
       });
 
+      socket.on('room-participants', (participants: any[]) => {
+        // Quantidade de pessoas assistindo (não contar com a própria captura)
+        setViewers(participants.length > 0 ? participants.length - 1 : 0);
+      });
       socket.on('user-joined', () => setViewers(v => v + 1));
       socket.on('user-left', () => setViewers(v => Math.max(0, v - 1)));
+      
+    } catch (e) {
+      setError('Token corrompido ou formato inválido.');
     }
-  }, [channelId, userId, screenStream, qualityPreset]);
+
+    return () => {
+      disconnectSocket();
+    };
+  }, [screenStream, qualityPreset]);
 
   const handleStartCapture = async () => {
     try {

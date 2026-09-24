@@ -4,16 +4,23 @@ import { DiscordSDK } from '@discord/embedded-app-sdk';
 interface StartButtonProps {
   discordSdk: DiscordSDK;
   channelId: string | null;
-  userId: string;
+  user: { id: string; username: string };
 }
 
-export const StartButton: React.FC<StartButtonProps> = ({ discordSdk, channelId, userId }) => {
+export const StartButton: React.FC<StartButtonProps> = ({ discordSdk, channelId, user }) => {
   const handleStart = () => {
     const captureUrl = import.meta.env.VITE_CAPTURE_URL || 'https://discord-capture.vercel.app';
     const url = new URL(captureUrl);
     
-    if (channelId) url.searchParams.set('channelId', channelId);
-    if (userId) url.searchParams.set('userId', userId);
+    // Arquitetura Token-Based
+    const payload = { 
+      room: channelId, 
+      uid: user.id, 
+      name: user.username, 
+      role: 'broadcaster' 
+    };
+    const token = btoa(JSON.stringify(payload));
+    url.searchParams.set('t', token);
 
     discordSdk.commands.openExternalLink({ url: url.toString() });
   };

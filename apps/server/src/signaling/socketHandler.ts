@@ -1,24 +1,42 @@
 import { Server, Socket } from 'socket.io';
 import { roomManager, UserInfo } from './roomManager.js';
-
 export function setupSocketHandlers(io: Server) {
+  // Middleware de Autenticação Baseada em Token (Fase 3)
+  io.use((socket, next) => {
+    const session = socket.handshake.auth.token;
+    if (!session || !session.room) {
+      return next(new Error("Token inválido"));
+    }
+    // Armazena na instância do socket para usar depois
+    socket.data.sessionData = session;
+    next();
+  });
+
   io.on('connection', (socket: Socket) => {
-    console.log(`Socket connected: ${socket.id}`);
+    const session = socket.data.sessionData;
+    const room = session.room;
+    const userInfo: UserInfo = { id: session.uid, username: session.name, avatar: '' };
 
-    socket.on('join-room', ({ channelId, userInfo }: { channelId: string; userInfo: UserInfo }) => {
-      console.log(`Socket ${socket.id} joining room ${channelId}`);
-      socket.join(channelId);
-      roomManager.joinRoom(channelId, socket.id, userInfo);
-      
-      socket.to(channelId).emit('user-joined', {
-        socketId: socket.id,
-        user: userInfo,
-      });
+    console.log(`Usuário ${session.name} (${session.role}) conectou e entrou na sala ${room}`);
+    
+    // Auto-Join Mágico! Nenhum emit no frontend é necessário
+    socket.join(room);
+    roomManager.joinRoom(room, socket.id, userInfo);
 
-      // Send existing participants to the user who just joined!
-      const participants = roomManager.getRoomParticipants(channelId);
-      socket.emit('room-participants', participants);
+    // Opcional: Avisar aos espectadores que o broadcaster chegou
+    if (session.role === 'broadcaster') {
+      socket.to(room).emit('broadcaster-ready', session.uid);
+    }
+
+    // Mantém a compatibilidade com nossa arquitetura anterior enviando os avisos nativos:
+    socket.to(room).emit('user-joined', {
+      socketId: socket.id,
+      user: userInfo,
     });
+
+    // Enviar participantes existentes para quem acabou de entrar
+    const participants = roomManager.getRoomParticipants(room);
+    socket.emit('room-participants', participants);
 
     socket.on('leave-room', ({ channelId }: { channelId: string }) => {
       console.log(`Socket ${socket.id} leaving room ${channelId}`);

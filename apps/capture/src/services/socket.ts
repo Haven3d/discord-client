@@ -8,8 +8,11 @@ const socket: Socket = io(VITE_SERVER_URL, {
   transports: ['polling', 'websocket'],
 });
 
-export const connectSocket = () => {
+export const connectSocket = (tokenPayload?: any) => {
   if (!socket.connected) {
+    if (tokenPayload) {
+      socket.auth = { token: tokenPayload };
+    }
     socket.connect();
   }
 };

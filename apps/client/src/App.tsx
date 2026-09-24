@@ -5,7 +5,7 @@ import { VideoGrid } from './components/VideoGrid';
 import { StartButton } from './components/StartButton';
 import { UserAvatar } from './components/UserAvatar';
 import { ControlPanel } from './components/ControlPanel';
-import { socketService, connectSocket, disconnectSocket, joinRoom } from './services/socket';
+import { socketService, connectSocket, disconnectSocket } from './services/socket';
 import './styles/global.css';
 
 const App: React.FC = () => {
@@ -14,10 +14,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isReady && auth && channelId) {
-      connectSocket();
+      // O viewer também entra usando Token-Based Auth
+      const viewerPayload = {
+        room: channelId,
+        uid: auth.id,
+        name: auth.username,
+        role: 'viewer'
+      };
+      
+      connectSocket(viewerPayload);
       const currentSocket = socketService.getSocket();
       currentSocket?.on('connect', () => {
-        joinRoom(channelId, { id: auth.id, username: auth.username, avatar: auth.avatar || '' });
+        // joinRoom manual foi removido conforme a arquitetura
       });
 
       return () => {
@@ -56,7 +64,7 @@ const App: React.FC = () => {
           <h1 style={{ fontSize: '1rem', margin: 0, fontWeight: 500, color: 'var(--text-secondary)' }}>Transmissão Haven 3D</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <StartButton discordSdk={discordSdk} channelId={channelId!} userId={auth.id} />
+          <StartButton discordSdk={discordSdk} channelId={channelId!} user={auth} />
           <UserAvatar user={auth} />
         </div>
       </header>

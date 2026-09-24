@@ -2,10 +2,10 @@ import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
 
-export const connectSocket = (serverUrl?: string) => {
+export const connectSocket = (tokenPayload?: any) => {
   if (!socket) {
     const isDev = import.meta.env.DEV;
-    let finalUrl = serverUrl || import.meta.env.VITE_SERVER_URL?.replace(/\/$/, '') || (isDev ? 'http://localhost:3001' : '');
+    let finalUrl = import.meta.env.VITE_SERVER_URL?.replace(/\/$/, '') || (isDev ? 'http://localhost:3001' : '');
     
     if (finalUrl.includes('discord-client-server')) {
         finalUrl = ''; // Usa o proxy
@@ -13,6 +13,7 @@ export const connectSocket = (serverUrl?: string) => {
     
     socket = io(finalUrl || undefined, {
       path: '/ws/',
+      auth: tokenPayload ? { token: tokenPayload } : undefined,
       transports: ['polling', 'websocket'],
     });
 
