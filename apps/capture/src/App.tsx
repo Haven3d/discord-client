@@ -49,8 +49,8 @@ function App() {
         }
       });
 
-      socket.on('viewer-joined', () => setViewers(v => v + 1));
-      socket.on('viewer-left', () => setViewers(v => Math.max(0, v - 1)));
+      socket.on('user-joined', () => setViewers(v => v + 1));
+      socket.on('user-left', () => setViewers(v => Math.max(0, v - 1)));
     }
   }, [channelId, userId, screenStream, qualityPreset]);
 

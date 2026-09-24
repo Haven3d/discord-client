@@ -1,13 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDiscordSdk } from './hooks/useDiscordSdk';
+import { useWebRTC } from './hooks/useWebRTC';
 import { VideoGrid } from './components/VideoGrid';
 import { StartButton } from './components/StartButton';
 import { UserAvatar } from './components/UserAvatar';
 import { ControlPanel } from './components/ControlPanel';
+import socket, { connectSocket, disconnectSocket, joinRoom } from './services/socket';
 import './styles/global.css';
 
 const App: React.FC = () => {
   const { auth, channelId, discordSdk, isReady, error } = useDiscordSdk();
+  const { remoteStreams } = useWebRTC();
+
+  useEffect(() => {
+    if (isReady && auth && channelId) {
+      connectSocket();
+      socket?.on('connect', () => {
+        joinRoom(channelId, { id: auth.id, username: auth.username, avatar: auth.avatar || '' });
+      });
+
+      return () => {
+        disconnectSocket();
+      };
+    }
+  }, [isReady, auth, channelId]);
 
   if (error) {
     return (
@@ -38,13 +54,13 @@ const App: React.FC = () => {
           <h1 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Compartilhar Tela</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <StartButton discordSdk={discordSdk} channelId={channelId} userId={auth.id} />
+          <StartButton discordSdk={discordSdk} channelId={channelId!} userId={auth.id} />
           <UserAvatar user={auth} />
         </div>
       </header>
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <VideoGrid />
+        <VideoGrid remoteStreams={remoteStreams} />
         
         <div style={{ padding: '16px' }}>
           <ControlPanel />

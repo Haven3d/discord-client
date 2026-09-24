@@ -36,20 +36,20 @@ export class WebRTCSender {
   }
 
   private setupSocketListeners() {
-    this.socket.on('viewer-joined', async ({ viewerId }) => {
-      await this.createPeerConnection(viewerId);
+    this.socket.on('user-joined', async ({ socketId }) => {
+      await this.createPeerConnection(socketId);
     });
 
-    this.socket.on('answer', async ({ sender, answer }) => {
-      await this.handleAnswer(sender, answer);
+    this.socket.on('answer', async ({ from, answer }) => {
+      await this.handleAnswer(from, answer);
     });
 
-    this.socket.on('ice-candidate', async ({ sender, candidate }) => {
-      await this.handleIceCandidate(sender, candidate);
+    this.socket.on('ice-candidate', async ({ from, candidate }) => {
+      await this.handleIceCandidate(from, candidate);
     });
 
-    this.socket.on('viewer-left', ({ viewerId }) => {
-      this.removePeer(viewerId);
+    this.socket.on('user-left', ({ socketId }) => {
+      this.removePeer(socketId);
     });
   }
 
@@ -124,10 +124,10 @@ export class WebRTCSender {
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
     }
-    this.socket.off('viewer-joined');
+    this.socket.off('user-joined');
     this.socket.off('answer');
     this.socket.off('ice-candidate');
-    this.socket.off('viewer-left');
+    this.socket.off('user-left');
   }
 
   private mungeSDP(sdp: string, bitrate: number): string {
