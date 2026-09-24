@@ -36,6 +36,14 @@ export class WebRTCSender {
   }
 
   private setupSocketListeners() {
+    this.socket.on('room-participants', async (participants: { socketId: string }[]) => {
+      for (const p of participants) {
+        if (p.socketId !== this.socket.id && !this.peerConnections.has(p.socketId)) {
+          await this.createPeerConnection(p.socketId);
+        }
+      }
+    });
+
     this.socket.on('user-joined', async ({ socketId }) => {
       await this.createPeerConnection(socketId);
     });
@@ -124,6 +132,7 @@ export class WebRTCSender {
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
     }
+    this.socket.off('room-participants');
     this.socket.off('user-joined');
     this.socket.off('answer');
     this.socket.off('ice-candidate');

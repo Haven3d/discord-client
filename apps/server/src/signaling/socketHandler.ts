@@ -14,6 +14,10 @@ export function setupSocketHandlers(io: Server) {
         socketId: socket.id,
         user: userInfo,
       });
+
+      // Send existing participants to the user who just joined!
+      const participants = roomManager.getRoomParticipants(channelId);
+      socket.emit('room-participants', participants);
     });
 
     socket.on('leave-room', ({ channelId }: { channelId: string }) => {
