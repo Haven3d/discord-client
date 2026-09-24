@@ -23,7 +23,7 @@ export const useDiscordSdk = () => {
         });
 
         const isDev = import.meta.env.DEV;
-        const serverUrl = import.meta.env.VITE_SERVER_URL?.replace(/\/$/, '') || (isDev ? 'http://localhost:3001' : 'https://discord-client-server.vercel.app');
+        const serverUrl = isDev ? 'http://localhost:3001' : '';
 
         const response = await fetch(`${serverUrl}/api/token`, {
           method: 'POST',

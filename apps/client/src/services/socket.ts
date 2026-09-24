@@ -5,7 +5,8 @@ let socket: Socket | null = null;
 export const connectSocket = (tokenPayload?: any) => {
   if (!socket) {
     const isDev = import.meta.env.DEV;
-    const finalUrl = import.meta.env.VITE_SERVER_URL?.replace(/\/$/, '') || (isDev ? 'http://localhost:3001' : 'https://discord-client-server.vercel.app');
+    // Em produção (iframe do Discord), tem que ser vazio para o proxy atuar e o CSP não bloquear.
+    const finalUrl = isDev ? 'http://localhost:3001' : '';
     
     socket = io(finalUrl, {
       path: '/ws/',
