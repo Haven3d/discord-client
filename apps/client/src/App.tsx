@@ -10,7 +10,9 @@ import './styles/global.css';
 
 const App: React.FC = () => {
   const { auth, channelId, discordSdk, isReady, error } = useDiscordSdk();
-  const { remoteStreams } = useWebRTC();
+  const { remoteStreams, isConnected } = useWebRTC();
+
+  const [isSocketConnected, setIsSocketConnected] = React.useState(false);
 
   useEffect(() => {
     if (isReady && auth && channelId) {
@@ -26,9 +28,10 @@ const App: React.FC = () => {
       
       connectSocket(tokenString);
       const currentSocket = socketService.getSocket();
-      currentSocket?.on('connect', () => {
-        // joinRoom manual foi removido conforme a arquitetura
-      });
+      
+      currentSocket?.on('connect', () => setIsSocketConnected(true));
+      currentSocket?.on('disconnect', () => setIsSocketConnected(false));
+      currentSocket?.on('connect_error', () => setIsSocketConnected(false));
 
       return () => {
         disconnectSocket();
@@ -71,11 +74,20 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
         <VideoGrid remoteStreams={remoteStreams} />
         
-        <div style={{ padding: '16px' }}>
+        <div style={{ padding: '16px', zIndex: 10 }}>
           <ControlPanel />
+        </div>
+
+        {/* Debug Overlay Temporário para caçar o bug */}
+        <div style={{ position: 'absolute', bottom: '80px', left: '16px', backgroundColor: 'rgba(0,0,0,0.8)', padding: '8px', borderRadius: '4px', fontSize: '10px', color: '#0f0', pointerEvents: 'none', zIndex: 100 }}>
+          <p>🔧 DIAGNÓSTICO DO SISTEMA</p>
+          <p>Socket.io: {isSocketConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
+          <p>WebRTC: {isConnected ? '✅ Conectado' : '⌛ Aguardando'}</p>
+          <p>Faixas (Vídeos): {remoteStreams.length}</p>
+          <p>Proxy: {import.meta.env.DEV ? 'Local' : 'Discord CDN'}</p>
         </div>
       </main>
     </div>

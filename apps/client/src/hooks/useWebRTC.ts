@@ -14,7 +14,17 @@ export const useWebRTC = () => {
 
   const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
+    { urls: 'stun:stun1.l.google.com:19302' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
   ];
 
   const handleOffer = useCallback(async (from: string, offer: RTCSessionDescriptionInit) => {
@@ -29,9 +39,16 @@ export const useWebRTC = () => {
 
       pc.ontrack = (event) => {
         setRemoteStreams(prev => {
-          const exists = prev.find(rs => rs.id === from);
-          if (exists) return prev;
+          const existingIndex = prev.findIndex(rs => rs.id === from);
           
+          if (existingIndex >= 0) {
+            // Se já existe uma stream, adiciona a nova track (ex: recebeu áudio, agora recebe vídeo)
+            const updated = [...prev];
+            updated[existingIndex].stream.addTrack(event.track);
+            return updated;
+          }
+          
+          // Se não existe, cria a stream com a primeira track que chegou
           const newStream = new MediaStream();
           newStream.addTrack(event.track);
           return [...prev, { id: from, stream: newStream }];
