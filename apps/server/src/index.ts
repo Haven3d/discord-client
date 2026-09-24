@@ -40,7 +40,7 @@ app.get('/health', (_req, res) => {
 
 setupSocketHandlers(io);
 
-const PORT = process.env.PORT || config.port || 3001;
+const PORT = Number(process.env.PORT || config.port || 3001);
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor contínuo rodando na porta ${PORT}`);
