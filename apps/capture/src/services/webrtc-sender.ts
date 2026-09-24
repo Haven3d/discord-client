@@ -84,7 +84,20 @@ export class WebRTCSender {
       }
     };
 
+    pc.onnegotiationneeded = async () => {
+      try {
+        const offer = await pc.createOffer();
+        offer.sdp = this.mungeSDP(offer.sdp || '', this.bitrate);
+        await pc.setLocalDescription(offer);
+        sendOffer(viewerId, pc.localDescription!);
+      } catch (error) {
+        console.error('Error during renegotiation:', error);
+      }
+    };
+
     try {
+      // The initial offer is now mostly handled by onnegotiationneeded, 
+      // but we force one here just in case for older browsers.
       const offer = await pc.createOffer();
       offer.sdp = this.mungeSDP(offer.sdp || '', this.bitrate);
       await pc.setLocalDescription(offer);

@@ -19,7 +19,8 @@ export const StartButton: React.FC<StartButtonProps> = ({ discordSdk, channelId,
       name: user.username, 
       role: 'broadcaster' 
     };
-    const token = btoa(JSON.stringify(payload));
+    // Safe Base64 for UTF-8 (acentos, emojis, etc)
+    const token = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     url.searchParams.set('t', token);
 
     discordSdk.commands.openExternalLink({ url: url.toString() });

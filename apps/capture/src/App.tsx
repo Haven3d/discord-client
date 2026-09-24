@@ -17,6 +17,8 @@ function App() {
   const webrtcSenderRef = useRef<WebRTCSender | null>(null);
   const [viewers, setViewers] = useState(0);
 
+  const [room, setRoom] = useState<string | null>(null);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tokenBase64 = params.get('t');
@@ -27,7 +29,9 @@ function App() {
     }
 
     try {
-      const sessionData = JSON.parse(atob(tokenBase64));
+      // Decode Base64 safe for UTF-8
+      const sessionData = JSON.parse(decodeURIComponent(escape(atob(tokenBase64))));
+      setRoom(sessionData.room);
       
       connectSocket(sessionData);
 
@@ -65,6 +69,10 @@ function App() {
       if (webrtcSenderRef.current) {
         webrtcSenderRef.current.setLocalStream(stream, qualityPreset.bitrate);
       }
+      
+      if (room) {
+        socket.emit('start-stream', { channelId: room });
+      }
 
       stream.getVideoTracks()[0].onended = () => {
         handleStopCapture();
@@ -80,9 +88,13 @@ function App() {
       setScreenStream(null);
     }
     setIsStreaming(false);
+    
+    if (room) {
+      socket.emit('stop-stream', { channelId: room });
+    }
+    
     if (webrtcSenderRef.current) {
-      // Clear stream in WebRTC sender
-      // Actually we probably want to restart or let it close
+      // webrtcSenderRef.current.closeAll(); // Optamos por não destruir tudo, apenas para de enviar tracks.
     }
   };
 

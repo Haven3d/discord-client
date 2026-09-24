@@ -14,15 +14,17 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isReady && auth && channelId) {
-      // O viewer também entra usando Token-Based Auth
+      // O viewer também entra usando Token-Based Auth convertido em Base64
       const viewerPayload = {
         room: channelId,
         uid: auth.id,
         name: auth.username,
         role: 'viewer'
       };
+      // Safe Base64 for UTF-8
+      const tokenString = btoa(unescape(encodeURIComponent(JSON.stringify(viewerPayload))));
       
-      connectSocket(viewerPayload);
+      connectSocket(tokenString);
       const currentSocket = socketService.getSocket();
       currentSocket?.on('connect', () => {
         // joinRoom manual foi removido conforme a arquitetura
