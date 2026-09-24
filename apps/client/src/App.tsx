@@ -17,17 +17,15 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isReady && auth && channelId) {
-      // O viewer também entra usando Token-Based Auth convertido em Base64
+      // O viewer entra usando Token-Based Auth como Objeto JSON direto (o Socket.io serializa pra gente)
       const viewerPayload = {
         room: channelId,
         uid: auth.id,
         name: auth.username,
         role: 'viewer'
       };
-      // Safe Base64 for UTF-8
-      const tokenString = btoa(unescape(encodeURIComponent(JSON.stringify(viewerPayload))));
       
-      connectSocket(tokenString);
+      connectSocket(viewerPayload);
       const currentSocket = socketService.getSocket();
       
       currentSocket?.on('connect', () => {
