@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import socket, { sendAnswer, sendIceCandidate } from '../services/socket';
+import { socketService, sendAnswer, sendIceCandidate } from '../services/socket';
 
 export interface RemoteStreamInfo {
   id: string; // The sender's socket ID
@@ -88,22 +88,23 @@ export const useWebRTC = () => {
   }, []);
 
   useEffect(() => {
-    if (!socket) return;
+    const currentSocket = socketService.getSocket();
+    if (!currentSocket) return;
 
     const onOffer = ({ from, offer }: { from: string, offer: any }) => handleOffer(from, offer);
     const onIceCandidate = ({ from, candidate }: { from: string, candidate: any }) => handleIceCandidate(from, candidate);
     const onUserLeft = ({ socketId }: { socketId: string }) => handleUserLeft(socketId);
 
-    socket.on('offer', onOffer);
-    socket.on('ice-candidate', onIceCandidate);
-    socket.on('user-left', onUserLeft);
-    socket.on('stream-stopped', onUserLeft); // Stream ended
+    currentSocket.on('offer', onOffer);
+    currentSocket.on('ice-candidate', onIceCandidate);
+    currentSocket.on('user-left', onUserLeft);
+    currentSocket.on('stream-stopped', onUserLeft);
 
     return () => {
-      socket.off('offer', onOffer);
-      socket.off('ice-candidate', onIceCandidate);
-      socket.off('user-left', onUserLeft);
-      socket.off('stream-stopped', onUserLeft);
+      currentSocket.off('offer', onOffer);
+      currentSocket.off('ice-candidate', onIceCandidate);
+      currentSocket.off('user-left', onUserLeft);
+      currentSocket.off('stream-stopped', onUserLeft);
     };
   }, [handleOffer, handleIceCandidate, handleUserLeft]);
 

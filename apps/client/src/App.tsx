@@ -5,7 +5,7 @@ import { VideoGrid } from './components/VideoGrid';
 import { StartButton } from './components/StartButton';
 import { UserAvatar } from './components/UserAvatar';
 import { ControlPanel } from './components/ControlPanel';
-import socket, { connectSocket, disconnectSocket, joinRoom } from './services/socket';
+import { socketService, connectSocket, disconnectSocket, joinRoom } from './services/socket';
 import './styles/global.css';
 
 const App: React.FC = () => {
@@ -15,7 +15,8 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isReady && auth && channelId) {
       connectSocket();
-      socket?.on('connect', () => {
+      const currentSocket = socketService.getSocket();
+      currentSocket?.on('connect', () => {
         joinRoom(channelId, { id: auth.id, username: auth.username, avatar: auth.avatar || '' });
       });
 
@@ -51,7 +52,8 @@ const App: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <header style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h1 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 600 }}>Compartilhar Tela</h1>
+          <img src="/haven-logo.png" alt="Haven 3D" style={{ height: '32px' }} />
+          <h1 style={{ fontSize: '1rem', margin: 0, fontWeight: 500, color: 'var(--text-secondary)' }}>Transmissão Haven 3D</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <StartButton discordSdk={discordSdk} channelId={channelId!} userId={auth.id} />

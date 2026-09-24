@@ -9,7 +9,7 @@ interface StartButtonProps {
 
 export const StartButton: React.FC<StartButtonProps> = ({ discordSdk, channelId, userId }) => {
   const handleStart = () => {
-    const captureUrl = import.meta.env.VITE_CAPTURE_URL || 'http://localhost:3002';
+    const captureUrl = import.meta.env.VITE_CAPTURE_URL || 'https://discord-capture.vercel.app';
     const url = new URL(captureUrl);
     
     if (channelId) url.searchParams.set('channelId', channelId);

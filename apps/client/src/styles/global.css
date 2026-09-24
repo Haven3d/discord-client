@@ -1,10 +1,11 @@
 :root {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #252541;
-  --accent: #f97316;
-  --accent-hover: #ea580c;
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #11111b;
+  --bg-card: #181825;
+  --accent: #ff8c00;
+  --accent-hover: #e67e00;
   --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
+  --text-secondary: #a6adc8;
 }
 
 * {

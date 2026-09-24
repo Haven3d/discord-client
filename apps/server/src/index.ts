@@ -15,8 +15,8 @@ app.use(corsMiddleware);
 const io = new Server(httpServer, {
   path: '/ws/',
   cors: {
-    origin: config.allowedOrigins,
-    credentials: true,
+    origin: "*",
+    methods: ["GET", "POST"]
   },
   // Compatível com Vercel serverless — polling funciona melhor que websocket
   transports: ['polling', 'websocket'],
