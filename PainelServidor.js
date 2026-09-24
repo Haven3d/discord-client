@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const { spawn } = require('child_process');
 
 const port = 4000;
@@ -7,6 +8,87 @@ let npmProcess = null;
 let cfProcess = null;
 let logs = [];
 let tunnelUrl = "";
+let discordUpdateStatus = ""; // "", "updating", "success", "error"
+
+// ============================================
+// Discord API: Auto-update URL Mapping
+// ============================================
+function httpsRequest(options, postData) {
+    return new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+                try {
+                    resolve({ status: res.statusCode, data: JSON.parse(body) });
+                } catch {
+                    resolve({ status: res.statusCode, data: body });
+                }
+            });
+        });
+        req.on('error', reject);
+        if (postData) req.write(postData);
+        req.end();
+    });
+}
+
+async function updateDiscordUrlMapping(newUrl) {
+    discordUpdateStatus = "updating";
+    logs.push('<span style="color: #faa61a">⏳ Atualizando mapeamento no Discord automaticamente...</span>');
+    
+    try {
+        // Read Bot Token from .env
+        const fs = require('fs');
+        const path = require('path');
+        const envPath = path.join(__dirname, '.env');
+        let botToken = '';
+        if (fs.existsSync(envPath)) {
+            const envContent = fs.readFileSync(envPath, 'utf-8');
+            const match = envContent.match(/DISCORD_BOT_TOKEN=(.+)/);
+            if (match) botToken = match[1].trim();
+        }
+        
+        if (!botToken) {
+            discordUpdateStatus = "error";
+            logs.push('<span style="color: #f04747">❌ Bot Token não encontrado no .env</span>');
+            logs.push('<span style="color: #faa61a">⚠️ Atualize MANUALMENTE: / → ' + newUrl + '</span>');
+            return false;
+        }
+        
+        const patchData = JSON.stringify({
+            embedded_activity_config: {
+                url_mappings: [{ prefix: '/', target: newUrl }]
+            }
+        });
+        
+        const result = await httpsRequest({
+            hostname: 'discord.com',
+            path: '/api/v10/applications/@me',
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(patchData),
+            }
+        }, patchData);
+        
+        if (result.status === 200) {
+            discordUpdateStatus = "success";
+            logs.push('<span style="color: #43b581">✅ DISCORD ATUALIZADO! Mapeamento "/" → ' + newUrl + '</span>');
+            return true;
+        } else {
+            discordUpdateStatus = "error";
+            logs.push('<span style="color: #f04747">❌ Erro ao atualizar Discord (status ' + result.status + ')</span>');
+            logs.push('<span style="color: #faa61a">⚠️ Atualize MANUALMENTE: / → ' + newUrl + '</span>');
+            return false;
+        }
+    } catch (err) {
+        discordUpdateStatus = "error";
+        logs.push('<span style="color: #f04747">❌ Erro: ' + err.message + '</span>');
+        logs.push('<span style="color: #faa61a">⚠️ Atualize MANUALMENTE: / → ' + newUrl + '</span>');
+        return false;
+    }
+}
 
 const htmlPage = `
 <!DOCTYPE html>
@@ -28,6 +110,10 @@ const htmlPage = `
         #copy-btn { padding: 8px 15px; font-size: 14px; font-weight: bold; background: #7289da; border: none; color: white; border-radius: 5px; cursor: pointer; transition: 0.2s;}
         #copy-btn:hover { background: #5b6eae; }
         #copy-btn:disabled { background: #4f545c; cursor: not-allowed; }
+        #discord-status { margin: 10px auto; padding: 8px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; display: none; }
+        .status-updating { background: #faa61a22; color: #faa61a; border: 1px solid #faa61a; }
+        .status-success { background: #43b58122; color: #43b581; border: 1px solid #43b581; }
+        .status-error { background: #f0474722; color: #f04747; border: 1px solid #f04747; }
         #logs-container { margin-top: 30px; text-align: left; width: 80%; margin-left: 10%; }
         h3 { margin-bottom: 5px; color: #b9bbbe; font-size: 14px; text-transform: uppercase;}
         #logs { background: #18191c; color: #43b581; font-family: 'Consolas', monospace; font-size: 13px; padding: 15px; height: 350px; overflow-y: auto; border-radius: 5px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);}
@@ -45,6 +131,8 @@ const htmlPage = `
         <span style="color: #b9bbbe;">🔗 Túnel:</span> <span id="tunnel-url">Aguardando geração do link...</span>
         <button id="copy-btn" onclick="copyUrl()" disabled>Copiar Link</button>
     </div>
+    
+    <div id="discord-status"></div>
     
     <div id="logs-container">
         <h3>Terminal do Sistema</h3>
@@ -71,6 +159,7 @@ const htmlPage = `
                 btn.className = 'btn btn-start';
                 btn.innerText = '🚀 Ligar Servidor';
                 document.getElementById('url-box').style.display = 'none';
+                document.getElementById('discord-status').style.display = 'none';
             }
         }
 
@@ -96,6 +185,7 @@ const htmlPage = `
                 
                 const tunnelUrlEl = document.getElementById('tunnel-url');
                 const copyBtn = document.getElementById('copy-btn');
+                const discordStatusEl = document.getElementById('discord-status');
                 
                 if(data.tunnelUrl) {
                     tunnelUrlEl.innerText = data.tunnelUrl;
@@ -105,6 +195,23 @@ const htmlPage = `
                     tunnelUrlEl.innerText = 'Gerando link... aguarde';
                     tunnelUrlEl.style.color = '#b9bbbe';
                     copyBtn.disabled = true;
+                }
+                
+                // Discord update status indicator
+                if (data.discordUpdateStatus === 'updating') {
+                    discordStatusEl.style.display = 'block';
+                    discordStatusEl.className = 'status-updating';
+                    discordStatusEl.innerText = '⏳ Atualizando Discord automaticamente...';
+                } else if (data.discordUpdateStatus === 'success') {
+                    discordStatusEl.style.display = 'block';
+                    discordStatusEl.className = 'status-success';
+                    discordStatusEl.innerText = '✅ Discord atualizado automaticamente! Atividade pronta.';
+                } else if (data.discordUpdateStatus === 'error') {
+                    discordStatusEl.style.display = 'block';
+                    discordStatusEl.className = 'status-error';
+                    discordStatusEl.innerText = '⚠️ Atualize manualmente no Discord Developer Portal';
+                } else {
+                    discordStatusEl.style.display = 'none';
                 }
 
                 if (data.logs.length > 0) {
@@ -133,11 +240,13 @@ const server = http.createServer((req, res) => {
             npmProcess = null;
             cfProcess = null;
             tunnelUrl = "";
+            discordUpdateStatus = "";
             logs.push("🛑 Servidores desligados com sucesso.");
         } else {
             // Start
             logs = ["🚀 Iniciando sistema base (Vite + Socket.io)..."];
             tunnelUrl = "";
+            discordUpdateStatus = "";
             
             npmProcess = spawn('npm', ['run', 'dev'], { shell: true });
             npmProcess.stdout.on('data', d => {
@@ -145,18 +254,26 @@ const server = http.createServer((req, res) => {
                 if(txt) logs.push('[Local] ' + txt.replace(/\n/g, '<br>[Local] '));
             });
             
-            cfProcess = spawn('.\\ngrok.exe', ['http', '--domain=morgan-losing-alberto.ngrok-free.dev', '5173'], { shell: true });
-            
-            tunnelUrl = 'https://morgan-losing-alberto.ngrok-free.dev';
-            logs.push('<span style="color: #fff">✅ TÚNEL NGROK FIXO CONECTADO: ' + tunnelUrl + '</span>');
+            // Cloudflare Quick Tunnel (sem tela anti-phishing no Discord!)
+            cfProcess = spawn('.\\cloudflared.exe', ['tunnel', '--url', 'http://localhost:5173'], { shell: true });
             
             cfProcess.stdout.on('data', d => {
                 const line = d.toString().trim();
-                if(line) logs.push('[Ngrok] ' + line);
+                if(line) logs.push('[Cloudflare] ' + line);
             });
             cfProcess.stderr.on('data', d => {
                 const line = d.toString().trim();
-                if(line) logs.push('[Ngrok] ' + line);
+                if(line) logs.push('[Cloudflare] ' + line);
+                
+                // Detect Cloudflare tunnel URL
+                const match = line.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+                if (match && tunnelUrl !== match[0]) {
+                    tunnelUrl = match[0];
+                    logs.push('<span style="color: #fff">🔗 TÚNEL CLOUDFLARE: ' + tunnelUrl + '</span>');
+                    
+                    // Auto-update Discord URL mapping!
+                    updateDiscordUrlMapping(tunnelUrl);
+                }
             });
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -164,7 +281,7 @@ const server = http.createServer((req, res) => {
     } else if (req.method === 'GET' && req.url === '/status') {
         if (logs.length > 80) logs = logs.slice(logs.length - 80);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ isRunning: !!(npmProcess || cfProcess), tunnelUrl, logs }));
+        res.end(JSON.stringify({ isRunning: !!(npmProcess || cfProcess), tunnelUrl, discordUpdateStatus, logs }));
     } else {
         res.writeHead(404);
         res.end();
@@ -185,8 +302,6 @@ function openAppWindow() {
 
 server.on('error', (e) => {
     if (e.code === 'EADDRINUSE') {
-        // O painel já está rodando em segundo plano.
-        // Vamos apenas abrir a janela da interface novamente!
         openAppWindow();
         process.exit(0);
     }
