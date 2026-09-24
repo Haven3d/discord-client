@@ -22,15 +22,26 @@ function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tokenBase64 = params.get('t');
+    const channelId = params.get('channelId');
 
-    if (!tokenBase64) {
+    let sessionData: any = null;
+
+    if (tokenBase64) {
+      try {
+        sessionData = JSON.parse(decodeURIComponent(escape(atob(tokenBase64))));
+      } catch (e) {
+        setError('Token corrompido ou formato inválido.');
+        return;
+      }
+    } else if (channelId && import.meta.env.DEV) {
+      // Fallback para desenvolvimento local
+      sessionData = { room: channelId, uid: 'dev-user', name: 'Dev User', role: 'broadcaster' };
+    } else {
       setError('Sessão inválida. O link de transmissão requer um token.');
       return;
     }
 
     try {
-      // Decode Base64 safe for UTF-8
-      const sessionData = JSON.parse(decodeURIComponent(escape(atob(tokenBase64))));
       setRoom(sessionData.room);
       
       // 1. Inicializa o Sender ANTES de conectar para ele registrar os listeners

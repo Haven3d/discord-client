@@ -3,9 +3,14 @@ import { roomManager, UserInfo } from './roomManager.js';
 export function setupSocketHandlers(io: Server) {
   // Middleware de Autenticação Baseada em Token (Fase 3)
   io.use((socket, next) => {
-    const session = socket.handshake.auth.token;
+    let session = socket.handshake.auth.token;
     if (!session || !session.room) {
-      return next(new Error("Token inválido"));
+      // Mock session for local development
+      if (process.env.NODE_ENV !== 'production') {
+        session = { room: 'default-room', uid: 'dev-user', name: 'Dev User', role: 'viewer' };
+      } else {
+        return next(new Error("Token inválido"));
+      }
     }
     // Armazena na instância do socket para usar depois
     socket.data.sessionData = session;
@@ -37,6 +42,29 @@ export function setupSocketHandlers(io: Server) {
     // Enviar participantes existentes para quem acabou de entrar
     const participants = roomManager.getRoomParticipants(room);
     socket.emit('room-participants', participants);
+
+    const roomData = roomManager.getRoom(room);
+    if (roomData && roomData.streamers) {
+      for (const streamerId of roomData.streamers) {
+        socket.emit('stream-started', { socketId: streamerId });
+      }
+    }
+
+    socket.on('join-room', ({ channelId, userInfo }: { channelId: string, userInfo: any }) => {
+      console.log(`Socket ${socket.id} joining room ${channelId}`);
+      socket.join(channelId);
+      roomManager.joinRoom(channelId, socket.id, userInfo);
+      
+      const participants = roomManager.getRoomParticipants(channelId);
+      socket.emit('room-participants', participants);
+
+      const roomData = roomManager.getRoom(channelId);
+      if (roomData && roomData.streamers) {
+        for (const streamerId of roomData.streamers) {
+          socket.emit('stream-started', { socketId: streamerId });
+        }
+      }
+    });
 
     socket.on('leave-room', ({ channelId }: { channelId: string }) => {
       console.log(`Socket ${socket.id} leaving room ${channelId}`);

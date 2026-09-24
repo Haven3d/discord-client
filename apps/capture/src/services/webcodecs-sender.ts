@@ -22,7 +22,8 @@ export class WebCodecsSender {
     this.isRunning = true;
 
     // 1. Conectar no WebSocket Puro
-    const wsUrl = import.meta.env.VITE_SERVER_URL.replace(/^http/, 'ws') + `/video-relay?channelId=${this.channelId}&role=broadcaster&socketId=${this.socketIo.id}`;
+    const baseUrl = import.meta.env.VITE_SERVER_URL || window.location.origin;
+    const wsUrl = baseUrl.replace(/^http/, 'ws') + `/video-relay?channelId=${this.channelId}&role=broadcaster&socketId=${this.socketIo.id}`;
     this.videoWs = new WebSocket(wsUrl);
 
     this.videoWs.onopen = () => {
@@ -66,14 +67,14 @@ export class WebCodecsSender {
 
     // Enviar a configuração inicial pelo próprio WebSocket de Vídeo usando JSON
     // Prefixamos a string JSON com 'C|' para identificar que é config
-    const configMsg = JSON.stringify({
+    this.configMsgStr = JSON.stringify({
       type: 'config',
       codec: 'vp8',
       codedWidth: width,
       codedHeight: height,
     });
     if (this.videoWs?.readyState === WebSocket.OPEN) {
-      this.videoWs.send('C|' + configMsg);
+      this.videoWs.send('C|' + this.configMsgStr);
     }
 
     const MSTP = (window as any).MediaStreamTrackProcessor;
@@ -82,8 +83,14 @@ export class WebCodecsSender {
     this.readFrames(fps);
   }
 
+  private configMsgStr: string = '';
+
   private onEncoded(chunk: EncodedVideoChunk, _meta: EncodedVideoChunkMetadata | undefined) {
     if (!this.isRunning || this.videoWs?.readyState !== WebSocket.OPEN) return;
+
+    if (chunk.type === 'key' && this.configMsgStr) {
+      this.videoWs.send('C|' + this.configMsgStr);
+    }
 
     // Extrair os bytes codificados
     const data = new ArrayBuffer(chunk.byteLength);

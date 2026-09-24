@@ -9,6 +9,10 @@ export const useWebCodecs = () => {
     const currentSocket = socketService.getSocket();
     if (!currentSocket) return;
 
+    // Entra na sala para receber eventos
+    const channelId = localStorage.getItem('current_channel_id') || 'default-room';
+    currentSocket.emit('join-room', { channelId, userInfo: { id: 'dev', name: 'Dev User' } });
+
     const onStart = (payload: any) => {
       setIsConnected(true);
       setActiveStreamers(prev => {
@@ -28,6 +32,7 @@ export const useWebCodecs = () => {
     currentSocket.on('stream-stopped', onStop);
 
     return () => {
+      currentSocket.emit('leave-room', { channelId });
       currentSocket.off('stream-started', onStart);
       currentSocket.off('user-left', onStop);
       currentSocket.off('stream-stopped', onStop);

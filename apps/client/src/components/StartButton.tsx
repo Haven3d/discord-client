@@ -9,7 +9,8 @@ interface StartButtonProps {
 
 export const StartButton: React.FC<StartButtonProps> = ({ discordSdk, channelId, user }) => {
   const handleStart = () => {
-    const captureUrl = import.meta.env.VITE_CAPTURE_URL || 'https://discord-capture.vercel.app';
+    const isDev = import.meta.env.DEV;
+    const captureUrl = import.meta.env.VITE_CAPTURE_URL || (isDev ? 'http://localhost:5174' : 'https://discord-capture.vercel.app');
     const url = new URL(captureUrl);
     
     // Arquitetura Token-Based

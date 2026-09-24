@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 
-const VITE_SERVER_URL = import.meta.env.VITE_SERVER_URL || 'https://discord-client-server.vercel.app';
+const VITE_SERVER_URL = import.meta.env.VITE_SERVER_URL || '';
 
 const socket: Socket = io(VITE_SERVER_URL, {
   autoConnect: false,

@@ -6,6 +6,17 @@
     <title>Compartilhar Tela</title>
   </head>
   <body>
+    <div id="error-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:red; color:white; padding:20px; z-index:9999; font-family:monospace; white-space:pre-wrap; overflow:auto;"></div>
+    <script>
+      window.addEventListener('error', function(e) {
+        document.getElementById('error-overlay').style.display = 'block';
+        document.getElementById('error-overlay').innerText = 'ERRO FATAL:\n' + e.message + '\n\n' + (e.error ? e.error.stack : '');
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        document.getElementById('error-overlay').style.display = 'block';
+        document.getElementById('error-overlay').innerText = 'ERRO DE PROMESSA:\n' + e.reason + '\n\n' + (e.reason ? e.reason.stack : '');
+      });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

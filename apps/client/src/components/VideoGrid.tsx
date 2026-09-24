@@ -20,7 +20,7 @@ const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channel
     // (Em prod o SERVER_URL pode estar vazio e ser resolvido via proxy)
     let baseUrl = import.meta.env.VITE_SERVER_URL;
     if (!baseUrl) {
-       baseUrl = window.location.origin; // O proxy resolve relative
+       baseUrl = window.location.origin;
     }
     const wsUrl = baseUrl.replace(/^http/, 'ws') + `/video-relay?channelId=${channelId}&role=viewer`;
     const ws = new WebSocket(wsUrl);

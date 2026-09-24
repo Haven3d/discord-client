@@ -4,9 +4,7 @@ let socket: Socket | null = null;
 
 export const connectSocket = (tokenPayload?: any) => {
   if (!socket) {
-    const isDev = import.meta.env.DEV;
-    // Em produção (iframe do Discord), tem que ser vazio para o proxy atuar e o CSP não bloquear.
-    const finalUrl = isDev ? 'http://localhost:3001' : '';
+    const finalUrl = import.meta.env.VITE_SERVER_URL || '';
     
     socket = io(finalUrl, {
       path: '/ws/',
@@ -62,13 +60,13 @@ export const socketService = {
   sendIceCandidate,
   getSocket: () => socket,
   onOffer: (callback: (from: string, offer: RTCSessionDescriptionInit) => void) => {
-    socket?.on('offer', ({ sender, offer }) => callback(sender, offer));
+    socket?.on('offer', ({ from, offer }) => callback(from, offer));
   },
   onAnswer: (callback: (from: string, answer: RTCSessionDescriptionInit) => void) => {
-    socket?.on('answer', ({ sender, answer }) => callback(sender, answer));
+    socket?.on('answer', ({ from, answer }) => callback(from, answer));
   },
   onIceCandidate: (callback: (from: string, candidate: RTCIceCandidateInit) => void) => {
-    socket?.on('ice-candidate', ({ sender, candidate }) => callback(sender, candidate));
+    socket?.on('ice-candidate', ({ from, candidate }) => callback(from, candidate));
   }
 };
 
