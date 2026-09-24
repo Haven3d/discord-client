@@ -9,11 +9,11 @@ export const useWebCodecs = () => {
     const currentSocket = socketService.getSocket();
     if (!currentSocket) return;
 
-    const onActivity = (payload: any) => {
+    const onStart = (payload: any) => {
       setIsConnected(true);
       setActiveStreamers(prev => {
-        if (!prev.includes(payload.from)) {
-          return [...prev, payload.from];
+        if (!prev.includes(payload.socketId)) {
+          return [...prev, payload.socketId];
         }
         return prev;
       });
@@ -23,14 +23,12 @@ export const useWebCodecs = () => {
       setActiveStreamers(prev => prev.filter(id => id !== socketId));
     };
 
-    currentSocket.on('video-config', onActivity);
-    currentSocket.on('video-chunk', onActivity);
+    currentSocket.on('stream-started', onStart);
     currentSocket.on('user-left', onStop);
     currentSocket.on('stream-stopped', onStop);
 
     return () => {
-      currentSocket.off('video-config', onActivity);
-      currentSocket.off('video-chunk', onActivity);
+      currentSocket.off('stream-started', onStart);
       currentSocket.off('user-left', onStop);
       currentSocket.off('stream-stopped', onStop);
     };

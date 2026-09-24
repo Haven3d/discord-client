@@ -1,29 +1,41 @@
 import { Socket } from 'socket.io-client';
 
 /**
- * WebCodecs Sender — Codifica frames de vídeo e envia via Socket.io.
- * 
- * Baseado na arquitetura do discord-screen (Jc007zZ):
- * - Usa VP8 que não precisa de decoderConfig.description
- * - Envia config separada (JSON) e chunks como ArrayBuffer
- * - Keyframe periódico para quem entra na sala depois
+ * WebCodecs Sender — Codifica frames de vídeo e envia via WebSocket Puro.
  */
 export class WebCodecsSender {
-  private socket: Socket;
+  private socketIo: Socket;
   private channelId: string;
   private encoder: VideoEncoder | null = null;
   private reader: any = null;
   private isRunning: boolean = false;
-  private configSent: boolean = false;
+  
+  // Conexão WebSocket pura apenas para vídeo
+  private videoWs: WebSocket | null = null;
 
-  constructor(socket: Socket, channelId: string) {
-    this.socket = socket;
+  constructor(socketIo: Socket, channelId: string) {
+    this.socketIo = socketIo;
     this.channelId = channelId;
   }
 
   public async start(stream: MediaStream, bitrate: number) {
     this.isRunning = true;
-    this.configSent = false;
+
+    // 1. Conectar no WebSocket Puro
+    const wsUrl = import.meta.env.VITE_SERVER_URL.replace(/^http/, 'ws') + `/video-relay?channelId=${this.channelId}&role=broadcaster&socketId=${this.socketIo.id}`;
+    this.videoWs = new WebSocket(wsUrl);
+
+    this.videoWs.onopen = () => {
+      console.log('[WebCodecsSender] WebSocket puro de vídeo conectado!');
+      this.initVideoPipeline(stream, bitrate);
+    };
+    
+    this.videoWs.onerror = (e) => {
+      console.error('[WebCodecsSender] Erro no WebSocket de vídeo:', e);
+    };
+  }
+
+  private initVideoPipeline(stream: MediaStream, bitrate: number) {
     const track = stream.getVideoTracks()[0];
     if (!track) return;
 
@@ -32,13 +44,15 @@ export class WebCodecsSender {
     const height = trackSettings.height || 720;
     const fps = trackSettings.frameRate || 30;
 
+    // 2. Avisar a sala via Socket.io que vamos iniciar o streaming (Sinalização)
+    this.socketIo.emit('start-stream', { channelId: this.channelId });
+
     // Criar o codificador de vídeo
     this.encoder = new VideoEncoder({
       output: (chunk, meta) => this.onEncoded(chunk, meta),
       error: (e) => console.error('[WebCodecsSender] Encoder error:', e)
     });
 
-    // Configurar VP8 — extremamente leve e sem necessidade de description blob
     const config: VideoEncoderConfig = {
       codec: 'vp8',
       width,
@@ -50,59 +64,50 @@ export class WebCodecsSender {
 
     this.encoder.configure(config);
 
-    // Enviar config para o decoder do outro lado ANTES dos chunks
-    this.socket.emit('video-config', {
-      channelId: this.channelId,
+    // Enviar a configuração inicial pelo próprio WebSocket de Vídeo usando JSON
+    // Prefixamos a string JSON com 'C|' para identificar que é config
+    const configMsg = JSON.stringify({
+      type: 'config',
       codec: 'vp8',
       codedWidth: width,
       codedHeight: height,
     });
+    if (this.videoWs?.readyState === WebSocket.OPEN) {
+      this.videoWs.send('C|' + configMsg);
+    }
 
-    // Puxar os frames crus direto da câmera/tela
     const MSTP = (window as any).MediaStreamTrackProcessor;
     this.reader = new MSTP({ track }).readable.getReader();
 
     this.readFrames(fps);
   }
 
-  private onEncoded(chunk: EncodedVideoChunk, meta: EncodedVideoChunkMetadata | undefined) {
-    if (!this.isRunning || !this.socket.connected) return;
-
-    // Se o codec entregar um decoderConfig (H.264 faz isso), manda separado
-    if (meta?.decoderConfig && !this.configSent) {
-      const dc = meta.decoderConfig;
-      const configMsg: any = {
-        channelId: this.channelId,
-        codec: dc.codec,
-        codedWidth: dc.codedWidth,
-        codedHeight: dc.codedHeight,
-      };
-      // description é um ArrayBuffer (só H.264 usa)
-      if (dc.description) {
-        const descBytes = new Uint8Array(dc.description as ArrayBuffer);
-        configMsg.description = btoa(String.fromCharCode(...descBytes));
-      }
-      this.socket.emit('video-config', configMsg);
-      this.configSent = true;
-    }
+  private onEncoded(chunk: EncodedVideoChunk, _meta: EncodedVideoChunkMetadata | undefined) {
+    if (!this.isRunning || this.videoWs?.readyState !== WebSocket.OPEN) return;
 
     // Extrair os bytes codificados
     const data = new ArrayBuffer(chunk.byteLength);
     chunk.copyTo(data);
 
-    // Enviar como ArrayBuffer puro — Socket.io 4.x suporta binary natively
-    this.socket.emit('video-chunk', {
-      channelId: this.channelId,
-      type: chunk.type,       // 'key' ou 'delta'
-      timestamp: chunk.timestamp,
-      data: data,             // ArrayBuffer — Socket.io envia como binary attachment
-    });
+    // Formato do buffer binário:
+    // [1 byte: Tipo (0 = Keyframe, 1 = Delta)] [8 bytes: Timestamp Float64] [N bytes: Payload de Vídeo]
+    const headerSize = 1 + 8;
+    const buf = new ArrayBuffer(headerSize + data.byteLength);
+    const view = new DataView(buf);
+    
+    view.setUint8(0, chunk.type === 'key' ? 0 : 1);
+    view.setFloat64(1, chunk.timestamp, true);
+    
+    new Uint8Array(buf, headerSize).set(new Uint8Array(data));
+
+    // Envia o ArrayBuffer cru pelo WebSocket puro
+    this.videoWs.send(buf);
   }
 
   private async readFrames(fps: number) {
     if (!this.reader) return;
 
-    const keyframeInterval = Math.max(fps, 30); // keyframe a cada ~1 segundo
+    const keyframeInterval = Math.max(fps, 30);
     let frameCount = 0;
 
     while (this.isRunning) {
@@ -135,5 +140,12 @@ export class WebCodecsSender {
       try { this.encoder.close(); } catch (e) {}
       this.encoder = null;
     }
+
+    if (this.videoWs) {
+      this.videoWs.close();
+      this.videoWs = null;
+    }
+
+    this.socketIo.emit('stop-stream', { channelId: this.channelId });
   }
 }

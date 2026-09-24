@@ -80,7 +80,7 @@ const App: React.FC = () => {
       </header>
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-        <VideoGrid activeStreamers={activeStreamers} />
+        <VideoGrid activeStreamers={activeStreamers} channelId={channelId!} />
         
         <div style={{ padding: '16px', zIndex: 10 }}>
           <ControlPanel />
