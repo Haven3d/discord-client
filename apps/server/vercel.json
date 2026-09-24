@@ -8,14 +8,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/src/index.ts"
-    },
-    {
-      "source": "/ws/:path*",
-      "destination": "/src/index.ts"
-    },
-    {
       "source": "/(.*)",
       "destination": "/src/index.ts"
     }
