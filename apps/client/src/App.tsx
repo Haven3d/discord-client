@@ -119,7 +119,7 @@ const App: React.FC = () => {
       {allStreamers.length > 0 ? (
         <main id="grid" className="grid palco" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
           
-          <div className="tile" style={{ width: '100%', height: '100%', position: 'relative' }}>
+          <div id="video-container" className="tile" style={{ width: '100%', height: '100%', position: 'relative' }}>
             {watchingStreamerId ? (
               <VideoGrid streamerId={watchingStreamerId} channelId={channelId || 'default-room'} />
             ) : (
@@ -227,12 +227,15 @@ const App: React.FC = () => {
                 </div>
 
                 <button id="fullscreen" className="btn" data-tip="Tela cheia" aria-label="Tela cheia" onClick={() => {
-                  if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch((err) => {
-                      console.log(`Erro ao tentar tela cheia: ${err.message}`);
-                    });
-                  } else {
-                    document.exitFullscreen();
+                  const videoContainer = document.getElementById('video-container');
+                  if (videoContainer) {
+                    if (!document.fullscreenElement) {
+                      videoContainer.requestFullscreen().catch((err) => {
+                        console.log(`Erro ao tentar tela cheia: ${err.message}`);
+                      });
+                    } else {
+                      document.exitFullscreen();
+                    }
                   }
                 }}>
                   <svg viewBox="0 0 24 24" aria-hidden="true">
