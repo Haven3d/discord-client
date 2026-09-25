@@ -58,7 +58,6 @@ const App: React.FC = () => {
     const captureUrl = import.meta.env.VITE_CAPTURE_URL || 'http://localhost:5174';
     const room = channelId || 'default-room';
     
-    // We can use a simpler token for now, or just the channelId
     const fakeToken = btoa(unescape(encodeURIComponent(JSON.stringify({ 
       room, 
       uid: auth?.id || 'dev-user', 
@@ -80,6 +79,10 @@ const App: React.FC = () => {
     }
   };
 
+  const currentUserId = auth?.id || 'dev-user';
+  const isBroadcasting = activeStreamers.includes(currentUserId);
+  const otherStreamers = activeStreamers.filter(id => id !== currentUserId);
+
   return (
     <div id="app" className="flutua palco">
       <div className="topbar">
@@ -91,12 +94,30 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+        {isBroadcasting && (
+          <div style={{ display: 'flex', alignItems: 'center', marginRight: '16px' }}>
+             <span style={{ background: '#35373d', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, color: 'var(--accent)' }}>você</span>
+          </div>
+        )}
       </div>
 
       <div className="shell">
         <div id="mediaWrap" className="media-wrap live">
-          {activeStreamers.length > 0 ? (
-            <VideoGrid activeStreamers={activeStreamers} channelId={channelId || 'default-room'} />
+          {isBroadcasting ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '10px' }}>
+              <button className="btn go" onClick={handleShareClick} style={{ padding: '0 20px', borderRadius: '999px', height: '46px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 5h18v11H3z" />
+                  <path d="M8 20h8" />
+                </svg>
+                Ver minha tela
+              </button>
+              <p className="muted" style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
+                Sua transmissão está no ar
+              </p>
+            </div>
+          ) : otherStreamers.length > 0 ? (
+            <VideoGrid activeStreamers={otherStreamers} channelId={channelId || 'default-room'} />
           ) : (
             <p id="emptyText" className="muted">Nenhuma transmissão ativa. Seja o primeiro a compartilhar.</p>
           )}
