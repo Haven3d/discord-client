@@ -38,10 +38,14 @@ const App: React.FC = () => {
     }
   }, [isReady, auth, channelId]);
 
-  if (error) {
+  if (error && isInsideDiscord) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', padding: '20px', textAlign: 'center' }}>
-        <p style={{ color: '#ef4444' }}>Erro: {error.message}</p>
+        <p style={{ color: '#ef4444', fontSize: '16px' }}>
+          Erro: {error.message}
+          <br /><br />
+          <small>Abra este link por dentro do Discord (como uma Activity) ou mude isInsideDiscord para false no App.tsx para testar o layout.</small>
+        </p>
       </div>
     );
   }
