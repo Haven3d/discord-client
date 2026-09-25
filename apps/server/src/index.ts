@@ -49,6 +49,7 @@ const wss = new WebSocketServer({ noServer: true });
 const videoRooms = new Map<string, Set<WebSocket>>();
 const wsToRoom = new Map<WebSocket, string>();
 const wsToSocketId = new Map<WebSocket, string>();
+const configCache = new Map<string, string>(); // sid -> config message
 
 wss.on('connection', (ws: WebSocket, request: any, channelId: string, isBroadcaster: boolean, socketId: string) => {
   if (!videoRooms.has(channelId)) {
@@ -59,6 +60,17 @@ wss.on('connection', (ws: WebSocket, request: any, channelId: string, isBroadcas
   room.add(ws);
   wsToRoom.set(ws, channelId);
   wsToSocketId.set(ws, socketId);
+
+  if (!isBroadcaster) {
+    // Send all cached configs for this room to the new viewer
+    for (const [sid, configMsg] of configCache.entries()) {
+      // We don't have a strict sid -> channelId mapping in cache, 
+      // but broadcasting all configs is harmless (the viewer filters by streamerId).
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(`${sid}|${configMsg}`);
+      }
+    }
+  }
 
   ws.on('message', (message: any, isBinary: boolean) => {
     if (isBroadcaster && isBinary) {
@@ -77,6 +89,12 @@ wss.on('connection', (ws: WebSocket, request: any, channelId: string, isBroadcas
     } else if (isBroadcaster && !isBinary) {
       const sid = wsToSocketId.get(ws) || 'unknown-streamer1234';
       const textMsg = message.toString();
+      
+      // Cache the configuration message
+      if (textMsg.startsWith('C|')) {
+        configCache.set(sid, textMsg);
+      }
+
       for (const client of room) {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
           client.send(`${sid}|${textMsg}`);
@@ -87,6 +105,7 @@ wss.on('connection', (ws: WebSocket, request: any, channelId: string, isBroadcas
 
   ws.on('close', () => {
     const cid = wsToRoom.get(ws);
+    const sid = wsToSocketId.get(ws);
     if (cid) {
       const r = videoRooms.get(cid);
       if (r) {
@@ -97,6 +116,9 @@ wss.on('connection', (ws: WebSocket, request: any, channelId: string, isBroadcas
       }
       wsToRoom.delete(ws);
       wsToSocketId.delete(ws);
+    }
+    if (sid && isBroadcaster) {
+      configCache.delete(sid);
     }
   });
 });

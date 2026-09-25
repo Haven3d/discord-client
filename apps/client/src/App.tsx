@@ -7,7 +7,7 @@ import { socketService, connectSocket, disconnectSocket } from './services/socke
 import './styles/global.css';
 
 const App: React.FC = () => {
-  const isInsideDiscord = false; // Dev override
+  const isInsideDiscord = true; // Use real Discord SDK
 
   const { auth, channelId, discordSdk, isReady, error } = useDiscordSdk();
   const { activeStreamers } = useWebCodecs();
@@ -87,8 +87,10 @@ const App: React.FC = () => {
   };
 
   const currentUserId = auth?.id || 'dev-user';
+  
+  // Exibir a própria transmissão na lista para espelho, e a tag 'você' no topo:
   const isBroadcasting = activeStreamers.includes(currentUserId);
-  const otherStreamers = activeStreamers.filter(id => id !== currentUserId);
+  const allStreamers = activeStreamers;
 
   return (
     <div id="app">
@@ -113,22 +115,7 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {isBroadcasting ? (
-        <main id="grid" className="grid palco" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '10px' }}>
-            <button className="btn go" onClick={handleShareClick} style={{ padding: '0 20px', borderRadius: '999px', height: '46px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 5h18v11H3z" />
-                <path d="M8 20h8" />
-              </svg>
-              Ver minha tela
-            </button>
-            <p className="muted" style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
-              Sua transmissão está no ar
-            </p>
-          </div>
-        </main>
-      ) : otherStreamers.length > 0 ? (
+      {allStreamers.length > 0 ? (
         <main id="grid" className="grid palco" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
           
           <div className="tile" style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -136,7 +123,7 @@ const App: React.FC = () => {
               <VideoGrid streamerId={watchingStreamerId} channelId={channelId || 'default-room'} />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '10px' }}>
-                <button className="btn go" onClick={() => setWatchingStreamerId(otherStreamers[0])} style={{ padding: '0 20px', borderRadius: '999px', height: '46px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
+                <button className="btn go" onClick={() => setWatchingStreamerId(allStreamers[0])} style={{ padding: '0 20px', borderRadius: '999px', height: '46px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
                   <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                     <line x1="8" y1="21" x2="16" y2="21" />
@@ -145,7 +132,7 @@ const App: React.FC = () => {
                   Assistir tela
                 </button>
                 <p className="muted" style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
-                  HAVEN 3D - {otherStreamers[0] === 'dev-user' ? 'Dev User' : 'Usuário'} está transmitindo
+                  HAVEN 3D - {allStreamers[0] === 'dev-user' ? 'Dev User' : 'Usuário'} está transmitindo
                 </p>
               </div>
             )}
@@ -156,10 +143,10 @@ const App: React.FC = () => {
           <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', overflowY: 'auto' }}>
             <div className="sidebar-count" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '999px', background: 'var(--tile)', color: 'var(--muted)', fontSize: '12px', fontWeight: 500, alignSelf: 'flex-start' }}>
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.85 }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-              {otherStreamers.length}
+              {allStreamers.length}
             </div>
             
-            {otherStreamers.map(id => (
+            {allStreamers.map(id => (
               <div key={id} className="tile" style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--tile)', borderRadius: '8px', marginTop: '10px' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>
                   {(id === 'dev-user' ? 'DU' : 'US')}
