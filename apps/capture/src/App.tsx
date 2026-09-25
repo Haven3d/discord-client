@@ -257,27 +257,11 @@ function App() {
 
           <footer>
             <p>Mantenha esta aba aberta enquanto transmite. O Discord continuarǭ exibindo sua transmissǜo normalmente.</p>
-            <div className="card-wpp-help">
-              <span>Precisa de ajuda para transmitir?</span>
-              <a href="https://wa.me/5571988612495?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20para%20transmitir%20minha%20tela!" target="_blank" rel="noopener noreferrer">
-                Falar no WhatsApp
-              </a>
-            </div>
+
           </footer>
       </main>
 
-      <div className="wpp-float-container">
-        <div className="wpp-float-popup" id="wppPopup">
-          <span className="wpp-popup-tag">Ajuda WhatsApp</span>
-          <p className="wpp-popup-text">Precisa de ajuda para transmitir? Fale comigo!</p>
-        </div>
-        <a href="https://wa.me/5571988612495?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20para%20transmitir%20minha%20tela!" target="_blank" rel="noopener noreferrer" className="wpp-float-btn" title="Falar com suporte no WhatsApp" aria-label="Falar com suporte no WhatsApp">
-          <span className="wpp-radar"></span>
-          <svg className="wpp-float-icon" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
-            <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.34C9.36 7.34 9.08 7.41 8.84 7.67C8.6 7.93 7.93 8.55 7.93 9.82C7.93 11.09 8.86 12.31 9 12.48C9.13 12.65 10.79 15.36 13.42 16.39C15.61 17.25 16.05 17.08 16.53 17.03C17 16.99 18.06 16.41 18.28 15.79C18.5 15.17 18.5 14.64 18.43 14.53C18.37 14.42 18.2 14.35 17.94 14.22C17.68 14.09 16.42 13.47 16.18 13.38C15.95 13.29 15.78 13.25 15.61 13.51C15.44 13.77 14.95 14.35 14.8 14.53C14.66 14.7 14.51 14.72 14.25 14.6C13.99 14.47 12.9 14.11 11.61 12.96C10.6 12.06 9.93 10.95 9.8 10.73C9.67 10.51 9.79 10.39 9.92 10.26C10.04 10.14 10.18 9.96 10.31 9.81C10.45 9.66 10.5 9.55 10.59 9.38C10.68 9.21 10.63 9.06 10.57 8.93C10.5 8.8 10.04 7.67 9.84 7.21C9.65 6.76 9.46 6.82 9.32 6.81C9.19 6.81 9.02 6.81 8.85 6.81L9.53 7.34Z"></path>
-          </svg>
-        </a>
-      </div>
+
     </div>
   );
 }
