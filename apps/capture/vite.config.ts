@@ -14,6 +14,7 @@ export default defineConfig({
   plugins: [react(), discordProxyPlugin()],
   server: {
     port: 5174,
+    allowedHosts: ['.discordsays.com', '.trycloudflare.com', '.ngrok-free.dev', '.haven3d.com.br'],
     proxy: {
       '/ws': {
         target: 'http://localhost:3001',

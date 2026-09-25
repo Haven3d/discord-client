@@ -18,7 +18,7 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 5173,
-    allowedHosts: ['.discordsays.com', '.trycloudflare.com', '.ngrok-free.dev'],
+    allowedHosts: ['.discordsays.com', '.trycloudflare.com', '.ngrok-free.dev', '.haven3d.com.br'],
     hmr: {
       clientPort: 443,
     },
