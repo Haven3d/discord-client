@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import socket, { connectSocket, disconnectSocket } from './services/socket';
 import { WebCodecsSender } from './services/webcodecs-sender';
-import { QualityPreset, QUALITY_PRESETS, startScreenCapture, stopCapture } from './services/media-capture';
+import { QUALITY_PRESETS, startScreenCapture, stopCapture } from './services/media-capture';
 import './styles/global.css';
 
 function App() {
@@ -61,13 +61,13 @@ function App() {
       try {
         sessionData = JSON.parse(decodeURIComponent(escape(atob(tokenBase64))));
       } catch (e) {
-        setError('Token corrompido ou formato inválido.');
+        setError('Token corrompido ou formato invÃ¡lido.');
         return;
       }
     } else if (channelId && import.meta.env.DEV) {
       sessionData = { room: channelId, uid: 'dev-user', name: 'Dev User', role: 'broadcaster' };
     } else {
-      setError('Sessão inválida. O link de transmissǜo requer um token.');
+      setError('SessÃ£o invÃ¡lida. O link de transmissÇœo requer um token.');
       return;
     }
 
@@ -94,7 +94,7 @@ function App() {
         disconnectSocket();
       };
     } catch (e) {
-      setError('Token corrompido ou formato inválido.');
+      setError('Token corrompido ou formato invÃ¡lido.');
     }
   }, []);
 
@@ -189,7 +189,7 @@ function App() {
       <main className="card">
         <div className="card-head">
             <div className="card-title-wrap">
-              <h1>Painel de Transmissão</h1>
+              <h1>Painel de TransmissÃ£o</h1>
               <div className="card-tag">Painel HAVEN</div>
             </div>
           </div>
@@ -207,7 +207,7 @@ function App() {
                     disabled={isStreaming}
                   >
                     {QUALITY_PRESETS.map((p, i) => (
-                      <option key={i} value={i}>{p.name} ({(p.bitrate/1000000).toFixed(1)} Mbps)</option>
+                      <option key={i} value={i}>{p.label}</option>
                     ))}
                   </select>
                 </label>
@@ -224,7 +224,7 @@ function App() {
               {!isStreaming ? (
                 <div id="tela-setup">
                   <div className="sem-preview">Sem preview</div>
-                  <p className="note">Marque "Compartilhar o áudio" na janela do navegador para transmitir o som.</p>
+                  <p className="note">Marque "Compartilhar o Ã¡udio" na janela do navegador para transmitir o som.</p>
                   <div className="acao">
                     <button className="primary" onClick={handleStartCapture}>Escolher tela e transmitir</button>
                   </div>
@@ -245,18 +245,18 @@ function App() {
             </section>
 
             <section className="bloco">
-              <h2>Câmera (Em Breve)</h2>
+              <h2>CÃ¢mera (Em Breve)</h2>
               <div id="camera-setup">
                 <div className="sem-preview">Sem preview</div>
                 <div className="acao">
-                  <button className="primary" disabled style={{ opacity: 0.5 }}>Câmera indisponível</button>
+                  <button className="primary" disabled style={{ opacity: 0.5 }}>CÃ¢mera indisponÃ­vel</button>
                 </div>
               </div>
             </section>
           </div>
 
           <footer>
-            <p>Mantenha esta aba aberta enquanto transmite. O Discord continuarǭ exibindo sua transmissǜo normalmente.</p>
+            <p>Mantenha esta aba aberta enquanto transmite. O Discord continuarÇ­ exibindo sua transmissÇœo normalmente.</p>
 
           </footer>
       </main>
@@ -267,3 +267,4 @@ function App() {
 }
 
 export default App;
+
