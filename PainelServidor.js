@@ -203,7 +203,7 @@ const server = http.createServer((req, res) => {
                 logs.push("🌐 Iniciando túnel permanente Cloudflare Zero Trust...");
                 tunnelUrl = "https://discord.haven3d.com.br";
                 
-                cfProcess = spawn(path.join(__dirname, 'cloudflared.exe'), ['tunnel', 'run', 'discord-haven'], { shell: false });
+                cfProcess = spawn(path.join(__dirname, 'cloudflared.exe'), ['tunnel', '--config', 'config.yml', 'run', 'discord-haven'], { shell: false });
                 
                 cfProcess.stdout.on('data', d => {
                     const line = d.toString().trim();
