@@ -123,62 +123,64 @@ const App: React.FC = () => {
           )}
         </div>
 
-        <div className="bottombar">
-          <div className="dock">
-            <div className="group">
-              <button id="share" className="btn" data-tip="Compartilhar tela" aria-label="Compartilhar tela" onClick={handleShareClick}>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 5h18v11H3z" />
-                  <path d="M8 20h8" />
-                </svg>
-              </button>
-              <button id="camera" className="btn" data-tip="Ligar câmera" aria-label="Ligar câmera" disabled style={{ opacity: 0.5 }}>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M23 7l-7 5 7 5V7z" />
-                  <rect x="1" y="5" width="15" height="14" rx="2" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="group">
-              <div id="volumeBox" className="volume">
-                <button id="mute" className="btn" data-tip={isMuted ? "Desmutar" : "Silenciar"} aria-label="Silenciar" onClick={() => setIsMuted(!isMuted)}>
-                  {isMuted ? (
-                    <svg id="muteOff" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M11 5 6 9H2v6h4l5 4V5z" />
-                      <path d="M22 9l-6 6M16 9l6 6" />
-                    </svg>
-                  ) : (
-                    <svg id="muteOn" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M11 5 6 9H2v6h4l5 4V5z" />
-                      <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14" />
-                    </svg>
-                  )}
+        {!isBroadcasting && (
+          <div className="bottombar">
+            <div className="dock">
+              <div className="group">
+                <button id="share" className="btn" data-tip="Compartilhar tela" aria-label="Compartilhar tela" onClick={handleShareClick}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 5h18v11H3z" />
+                    <path d="M8 20h8" />
+                  </svg>
                 </button>
-
-                <div className="volume-pop">
-                  <span id="volumeVal" className="volume-val">{volume}%</span>
-                  <input
-                    id="volume"
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={volume}
-                    onChange={(e) => setVolume(Number(e.target.value))}
-                    aria-label="Volume"
-                  />
-                </div>
+                <button id="camera" className="btn" data-tip="Ligar câmera" aria-label="Ligar câmera" disabled style={{ opacity: 0.5 }}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M23 7l-7 5 7 5V7z" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" />
+                  </svg>
+                </button>
               </div>
 
-              <button id="fullscreen" className="btn" data-tip="Tela cheia" aria-label="Tela cheia" onClick={() => setIsFullscreen(!isFullscreen)}>
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
-                </svg>
-              </button>
+              <div className="group">
+                <div id="volumeBox" className="volume">
+                  <button id="mute" className="btn" data-tip={isMuted ? "Desmutar" : "Silenciar"} aria-label="Silenciar" onClick={() => setIsMuted(!isMuted)}>
+                    {isMuted ? (
+                      <svg id="muteOff" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M11 5 6 9H2v6h4l5 4V5z" />
+                        <path d="M22 9l-6 6M16 9l6 6" />
+                      </svg>
+                    ) : (
+                      <svg id="muteOn" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M11 5 6 9H2v6h4l5 4V5z" />
+                        <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <div className="volume-pop">
+                    <span id="volumeVal" className="volume-val">{volume}%</span>
+                    <input
+                      id="volume"
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={volume}
+                      onChange={(e) => setVolume(Number(e.target.value))}
+                      aria-label="Volume"
+                    />
+                  </div>
+                </div>
+
+                <button id="fullscreen" className="btn" data-tip="Tela cheia" aria-label="Tela cheia" onClick={() => setIsFullscreen(!isFullscreen)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
