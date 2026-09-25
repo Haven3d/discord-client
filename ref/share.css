@@ -1,25 +1,25 @@
 :root {
-  --c-orange: #8A2BE2;
-  --c-orange-bright: #9B30FF;
-  --c-orange-glow: rgba(138, 43, 226, 0.3);
-  --c-orange-subtle: rgba(138, 43, 226, 0.12);
+  --c-orange: #FF8D07;
+  --c-orange-bright: #FFA033;
+  --c-orange-glow: rgba(255, 141, 7, 0.16);
+  --c-orange-subtle: rgba(255, 141, 7, 0.08);
 
-  /* Dark theme (padrão oficial HAVEN) */
+  /* Dark theme (padrão oficial Xispeh) */
   --bg: #0a0a0a;
   --bg-deep: #060606;
   --card: #121111;
   --card-surface: #181717;
   --input-bg: #0d0c0c;
-  --line: rgba(138, 43, 226, 0.3);
+  --line: rgba(255, 141, 7, 0.22);
   --line-subtle: rgba(255, 255, 255, 0.09);
   --text: #F5F5F5;
   --muted: #A8A6A6;
-  --accent: #8A2BE2;
-  --accent-hover: #9B30FF;
+  --accent: #FF8D07;
+  --accent-hover: #FFA033;
   --danger: #E03E3E;
   --ok: #2BB673;
   --c-logo-text: #F5F5F5;
-  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 24px rgba(138, 43, 226, 0.15);
+  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 24px rgba(255, 141, 7, 0.1);
   --f-body: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --ls: -0.03em;
 }
@@ -30,16 +30,16 @@
   --card: #FFFFFF;
   --card-surface: #F8F8F9;
   --input-bg: #F0F0F3;
-  --line: rgba(138, 43, 226, 0.4);
+  --line: rgba(255, 141, 7, 0.32);
   --line-subtle: rgba(0, 0, 0, 0.1);
   --text: #121111;
   --muted: #555555;
-  --accent: #8A2BE2;
-  --accent-hover: #7b2cbf;
+  --accent: #FF8D07;
+  --accent-hover: #E67A00;
   --danger: #D32F2F;
   --ok: #1E8E53;
   --c-logo-text: #121111;
-  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(138, 43, 226, 0.18);
+  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255, 141, 7, 0.12);
 }
 
 * {
@@ -309,7 +309,7 @@ button {
 
 .primary:hover {
   background: var(--accent-hover);
-  box-shadow: 0 4px 14px rgba(138, 43, 226, 0.4);
+  box-shadow: 0 4px 14px rgba(255, 141, 7, 0.3);
   transform: translateY(-1px);
 }
 
