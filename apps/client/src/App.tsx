@@ -7,8 +7,8 @@ import { socketService, connectSocket, disconnectSocket } from './services/socke
 import './styles/global.css';
 
 const App: React.FC = () => {
-  // Deixando false para permitir testes no navegador fora do Discord
-  const isInsideDiscord = false; 
+  // Lê do painel de controle se a autenticação estrita do Discord é exigida
+  const isInsideDiscord = import.meta.env.VITE_REQUIRE_DISCORD_AUTH === 'true'; 
 
   const { auth, channelId, discordSdk, isReady, error } = useDiscordSdk();
   const { activeStreamers } = useWebCodecs();
@@ -226,7 +226,15 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <button id="fullscreen" className="btn" data-tip="Tela cheia" aria-label="Tela cheia" onClick={() => setIsFullscreen(!isFullscreen)}>
+                <button id="fullscreen" className="btn" data-tip="Tela cheia" aria-label="Tela cheia" onClick={() => {
+                  if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch((err) => {
+                      console.log(`Erro ao tentar tela cheia: ${err.message}`);
+                    });
+                  } else {
+                    document.exitFullscreen();
+                  }
+                }}>
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
                   </svg>
