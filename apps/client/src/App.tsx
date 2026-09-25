@@ -1,30 +1,28 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDiscordSdk } from './hooks/useDiscordSdk';
 import { useWebCodecs } from './hooks/useWebCodecs';
 import { VideoGrid } from './components/VideoGrid';
 import { StartButton } from './components/StartButton';
-import { UserAvatar } from './components/UserAvatar';
-import { ControlPanel } from './components/ControlPanel';
 import { socketService, connectSocket, disconnectSocket } from './services/socket';
 import './styles/global.css';
 
 const App: React.FC = () => {
-  // Forçando o uso do layout local mesmo dentro do iframe do Discord
-  const isInsideDiscord = false;
-
-  if (!isInsideDiscord && !socketService.getSocket()) {
-      connectSocket({ room: 'default-room', uid: 'dev-user', name: 'Dev User', role: 'viewer' });
-  }
+  const isInsideDiscord = false; // Dev override
 
   const { auth, channelId, discordSdk, isReady, error } = useDiscordSdk();
-  const { activeStreamers, isConnected } = useWebCodecs();
+  const { activeStreamers } = useWebCodecs();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [volume, setVolume] = useState(100);
+  const [isMuted, setIsMuted] = useState(false);
 
-  const [isSocketConnected, setIsSocketConnected] = React.useState(false);
-  const [socketError, setSocketError] = React.useState('');
+  useEffect(() => {
+    if (!isInsideDiscord && !socketService.getSocket()) {
+      connectSocket({ room: 'default-room', uid: 'dev-user', name: 'Dev User', role: 'viewer' });
+    }
+  }, [isInsideDiscord]);
 
   useEffect(() => {
     if (isReady && auth && channelId) {
-      // O viewer entra usando Token-Based Auth como Objeto JSON direto (o Socket.io serializa pra gente)
       const viewerPayload = {
         room: channelId,
         uid: auth.id,
@@ -33,63 +31,12 @@ const App: React.FC = () => {
       };
       
       connectSocket(viewerPayload);
-      const currentSocket = socketService.getSocket();
-      
-      currentSocket?.on('connect', () => {
-        setIsSocketConnected(true);
-        setSocketError('');
-      });
-      currentSocket?.on('disconnect', () => setIsSocketConnected(false));
-      currentSocket?.on('connect_error', (err) => {
-        setIsSocketConnected(false);
-        setSocketError(err.message);
-      });
 
       return () => {
         disconnectSocket();
       };
     }
   }, [isReady, auth, channelId]);
-
-  if (!isInsideDiscord) {
-    // Modo de Desenvolvimento (Mock)
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        <header style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/haven-logo.png" alt="Haven 3D" style={{ height: '32px' }} />
-            <h1 style={{ fontSize: '1rem', margin: 0, fontWeight: 500, color: 'var(--text-secondary)' }}>Transmissão (Local Test)</h1>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button onClick={async () => {
-              const captureUrl = import.meta.env.VITE_CAPTURE_URL || 'http://localhost:5174';
-              const fullUrl = captureUrl + '?channelId=default-room&userId=dev';
-              
-              if (window.parent !== window) {
-                // Dentro do Discord, window.open é bloqueado. Precisamos do SDK.
-                try {
-                  await discordSdk.ready();
-                  discordSdk.commands.openExternalLink({ url: fullUrl });
-                } catch (e) {
-                  console.error("Falha ao abrir link pelo SDK:", e);
-                }
-              } else {
-                window.open(fullUrl, '_blank');
-              }
-            }} style={{ padding: '8px 16px', backgroundColor: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>
-              🔴 Abrir Captura
-            </button>
-            <div style={{ color: '#fff' }}>Dev User</div>
-          </div>
-        </header>
-
-        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-          <VideoGrid activeStreamers={activeStreamers} channelId="default-room" />
-          <div style={{ padding: '16px', zIndex: 10 }}><ControlPanel /></div>
-        </main>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -99,46 +46,115 @@ const App: React.FC = () => {
     );
   }
 
-  if (!isReady || !auth) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: '16px' }}>
-        <div className="spinner" style={{ width: '40px', height: '40px', border: '4px solid rgba(255, 255, 255, 0.1)', borderLeftColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-        <p>Carregando Discord SDK...</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+  if (!isInsideDiscord && false) {
+     // ignoring old branch
   }
 
+  const handleShareClick = async () => {
+    const captureUrl = import.meta.env.VITE_CAPTURE_URL || 'http://localhost:5174';
+    const room = channelId || 'default-room';
+    
+    // We can use a simpler token for now, or just the channelId
+    const fakeToken = btoa(unescape(encodeURIComponent(JSON.stringify({ 
+      room, 
+      uid: auth?.id || 'dev-user', 
+      name: auth?.username || 'Dev User', 
+      role: 'broadcaster' 
+    }))));
+
+    const fullUrl = captureUrl + '?t=' + fakeToken;
+    
+    if (window.parent !== window && discordSdk) {
+      try {
+        await discordSdk.ready();
+        discordSdk.commands.openExternalLink({ url: fullUrl });
+      } catch (e) {
+        console.error("Falha ao abrir link pelo SDK:", e);
+      }
+    } else {
+      window.open(fullUrl, '_blank');
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <header style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src="/haven-logo.png" alt="Haven 3D" style={{ height: '32px' }} />
-          <h1 style={{ fontSize: '1rem', margin: 0, fontWeight: 500, color: 'var(--text-secondary)' }}>Transmissão Haven 3D</h1>
+    <div id="app" className="flutua palco">
+      <div className="topbar">
+        <div className="topbar-left">
+          <div className="topbar-brand">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <img src="/haven-logo.png" alt="HAVEN" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
+              <span style={{ fontWeight: 700, fontSize: '18px', letterSpacing: '-0.05em', color: 'var(--text)' }}>HAVEN</span>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <StartButton discordSdk={discordSdk} channelId={channelId!} user={auth} />
-          <UserAvatar user={auth} />
-        </div>
-      </header>
+      </div>
 
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-        <VideoGrid activeStreamers={activeStreamers} channelId={channelId!} />
-        
-        <div style={{ padding: '16px', zIndex: 10 }}>
-          <ControlPanel />
+      <div className="shell">
+        <div id="mediaWrap" className="media-wrap live">
+          {activeStreamers.length > 0 ? (
+            <VideoGrid activeStreamers={activeStreamers} channelId={channelId || 'default-room'} />
+          ) : (
+            <p id="emptyText" className="muted">Nenhuma transmissão ativa. Seja o primeiro a compartilhar.</p>
+          )}
         </div>
 
-        {/* Debug Overlay Temporário para caçar o bug */}
-        <div style={{ position: 'absolute', bottom: '80px', left: '16px', backgroundColor: 'rgba(0,0,0,0.8)', padding: '8px', borderRadius: '4px', fontSize: '10px', color: '#0f0', pointerEvents: 'none', zIndex: 100 }}>
-          <p>🔧 DIAGNÓSTICO DO SISTEMA</p>
-          <p>Socket.io: {isSocketConnected ? '✅ Conectado' : '❌ Desconectado'}</p>
-          {socketError && <p style={{ color: '#f87171' }}>└─ Erro: {socketError}</p>}
-          <p>WebCodecs: {isConnected ? '✅ Recebendo' : '⌛ Aguardando'}</p>
-          <p>Telas ativas: {activeStreamers.length}</p>
-          <p>Proxy: {import.meta.env.DEV ? 'Local' : 'Discord CDN'}</p>
+        <div className="bottombar">
+          <div className="dock">
+            <div className="group">
+              <button id="share" className="btn" data-tip="Compartilhar tela" aria-label="Compartilhar tela" onClick={handleShareClick}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 5h18v11H3z" />
+                  <path d="M8 20h8" />
+                </svg>
+              </button>
+              <button id="camera" className="btn" data-tip="Ligar câmera" aria-label="Ligar câmera" disabled style={{ opacity: 0.5 }}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M23 7l-7 5 7 5V7z" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="group">
+              <div id="volumeBox" className="volume">
+                <button id="mute" className="btn" data-tip={isMuted ? "Desmutar" : "Silenciar"} aria-label="Silenciar" onClick={() => setIsMuted(!isMuted)}>
+                  {isMuted ? (
+                    <svg id="muteOff" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M11 5 6 9H2v6h4l5 4V5z" />
+                      <path d="M22 9l-6 6M16 9l6 6" />
+                    </svg>
+                  ) : (
+                    <svg id="muteOn" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M11 5 6 9H2v6h4l5 4V5z" />
+                      <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14" />
+                    </svg>
+                  )}
+                </button>
+
+                <div className="volume-pop">
+                  <span id="volumeVal" className="volume-val">{volume}%</span>
+                  <input
+                    id="volume"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={volume}
+                    onChange={(e) => setVolume(Number(e.target.value))}
+                    aria-label="Volume"
+                  />
+                </div>
+              </div>
+
+              <button id="fullscreen" className="btn" data-tip="Tela cheia" aria-label="Tela cheia" onClick={() => setIsFullscreen(!isFullscreen)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

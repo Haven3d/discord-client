@@ -6,27 +6,19 @@ interface VideoGridProps {
   channelId?: string;
 }
 
-/**
- * Player WebCodecs usando WebSocket Puro.
- */
 const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channelId: string }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const decoderRef = useRef<VideoDecoder | null>(null);
-  const [status, setStatus] = useState<string>('conectando WS puro...');
-  const wsRef = useRef<WebSocket | null>(null);
+  const [status, setStatus] = useState<string>('Conectando...');
 
   useEffect(() => {
-    // 1. Conectar ao WebSocket puro como viewer
-    // (Em prod o SERVER_URL pode estar vazio e ser resolvido via proxy)
     let baseUrl = import.meta.env.VITE_SERVER_URL;
     if (!baseUrl) {
        baseUrl = window.location.origin;
     }
     const wsUrl = baseUrl.replace(/^http/, 'ws') + `/video-relay?channelId=${channelId}&role=viewer`;
     const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.binaryType = 'arraybuffer'; // Queremos os buffers crus
+    ws.binaryType = 'arraybuffer';
 
     const decoder = new VideoDecoder({
       output: (frame) => {
@@ -51,7 +43,7 @@ const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channel
     decoderRef.current = decoder;
 
     ws.onopen = () => {
-      setStatus('ws conectado, aguardando vídeo...');
+      setStatus('Aguardando vídeo...');
     };
 
     ws.onmessage = (event) => {
@@ -73,7 +65,7 @@ const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channel
               codedHeight: payload.codedHeight,
               optimizeForLatency: true,
             });
-            setStatus(`codec: ${payload.codec} ${payload.codedWidth}x${payload.codedHeight}`);
+            setStatus(''); // Limpa o status quando o vídeo começar
           } catch (e) {
             console.error('[WebCodecPlayer] Configure failed:', e);
           }
@@ -109,16 +101,14 @@ const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channel
           });
           decoderRef.current.decode(chunk);
         } catch (e) {
-          // Chunk descartado, espera próximo keyframe
         }
       }
     };
 
-    // Usar o Socket.io (sinalização) para saber se ele saiu da sala
     const socketIo = socketService.getSocket();
     const onUserLeft = ({ socketId }: { socketId: string }) => {
       if (socketId === streamerId) {
-        setStatus('transmissão encerrada');
+        setStatus('Transmissão encerrada');
       }
     };
     if (socketIo) {
@@ -139,53 +129,37 @@ const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channel
   }, [streamerId, channelId]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <>
       <canvas
         ref={canvasRef}
+        id="player"
+        className="player"
         style={{
           width: '100%',
-          maxHeight: '100%',
+          height: '100%',
           objectFit: 'contain',
-          backgroundColor: '#000',
-          borderRadius: '8px'
         }}
       />
-      <div style={{
-        position: 'absolute', bottom: '8px', left: '8px',
-        backgroundColor: 'rgba(0,0,0,0.7)', padding: '4px 8px',
-        borderRadius: '4px', fontSize: '10px', color: '#0f0',
-      }}>
-        {status}
-      </div>
-    </div>
+      {status && (
+        <div style={{
+          position: 'absolute', bottom: '20px', left: '20px',
+          backgroundColor: 'rgba(0,0,0,0.7)', padding: '4px 8px',
+          borderRadius: '4px', fontSize: '12px', color: '#fff',
+          zIndex: 100
+        }}>
+          {status}
+        </div>
+      )}
+    </>
   );
 };
 
 export const VideoGrid: React.FC<VideoGridProps> = ({ activeStreamers = [], channelId = 'default-room' }) => {
-
   return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      {activeStreamers.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '40px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', maxWidth: '400px', textAlign: 'center' }}>
-            <div style={{ width: '64px', height: '64px', backgroundColor: 'rgba(255, 140, 0, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                <line x1="8" y1="21" x2="16" y2="21"></line>
-                <line x1="12" y1="17" x2="12" y2="21"></line>
-              </svg>
-            </div>
-            <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)', margin: 0 }}>Nenhuma transmissão ativa</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>Seja o primeiro a compartilhar sua tela com o grupo.</p>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', width: '100%', height: '100%' }}>
-          {activeStreamers.map((id) => (
-            <WebCodecPlayer key={id} streamerId={id} channelId={channelId} />
-          ))}
-        </div>
-      )}
-    </div>
+    <>
+      {activeStreamers.map((id) => (
+        <WebCodecPlayer key={id} streamerId={id} channelId={channelId} />
+      ))}
+    </>
   );
 };
