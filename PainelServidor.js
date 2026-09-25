@@ -66,10 +66,9 @@ const htmlPage = `
         .btn-stop:hover { background-color: #d84040; }
         #url-box { margin: 20px auto; padding: 15px 25px; background: #23272a; border-radius: 8px; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; gap: 15px; border: 1px solid #7289da; flex-direction: column;}
         .url-row { display: flex; align-items: center; gap: 15px; }
-        #tunnel-url { color: #b9bbbe; font-weight: 500; letter-spacing: 0.5px;}
+        #tunnel-url { color: #43b581; font-weight: bold; letter-spacing: 0.5px;}
         #copy-btn { padding: 8px 15px; font-size: 14px; font-weight: bold; background: #7289da; border: none; color: white; border-radius: 5px; cursor: pointer; transition: 0.2s;}
         #copy-btn:hover { background: #5b6eae; }
-        #copy-btn:disabled { background: #4f545c; cursor: not-allowed; }
         #discord-status { margin: 10px auto; padding: 10px 20px; border-radius: 6px; font-size: 15px; font-weight: 600; background: #faa61a22; color: #faa61a; border: 1px solid #faa61a; display: none; max-width: 600px;}
         #logs-container { margin-top: 30px; text-align: left; width: 80%; margin-left: 10%; }
         h3 { margin-bottom: 5px; color: #b9bbbe; font-size: 14px; text-transform: uppercase;}
@@ -86,11 +85,12 @@ const htmlPage = `
     
     <div id="url-box" style="display:none;">
         <div class="url-row">
-            <span style="color: #b9bbbe;">🔗 Túnel:</span> <span id="tunnel-url">Aguardando geração do link...</span>
-            <button id="copy-btn" onclick="copyUrl()" disabled>Copiar Link</button>
+            <span style="color: #b9bbbe;">🔗 Túnel Fixo (Cloudflare Zero Trust):</span> 
+            <span id="tunnel-url">https://discord.haven3d.com.br</span>
+            <button id="copy-btn" onclick="copyUrl()">Copiar Link</button>
         </div>
         <div id="discord-status">
-            ⚠️ <b>Ação Necessária:</b> Você precisa copiar o link acima e colocar no <br><a href="https://discord.com/developers/applications/1552395456338731068/url-mappings" target="_blank" style="color: #fff; text-decoration: underline;">Discord Developer Portal (URL Mappings)</a> para o app funcionar.
+            ⚠️ <b>Ação Necessária (Apenas uma vez):</b> Cole o link acima no <br><a href="https://discord.com/developers/applications/1552395456338731068/url-mappings" target="_blank" style="color: #fff; text-decoration: underline;">Discord Developer Portal (URL Mappings)</a>. Como o link agora é FIXO, você nunca mais precisará fazer isso!
         </div>
     </div>
     
@@ -149,15 +149,9 @@ const htmlPage = `
                 const copyBtn = document.getElementById('copy-btn');
                 const discordStatusEl = document.getElementById('discord-status');
                 
-                if(data.tunnelUrl) {
-                    tunnelUrlEl.innerText = data.tunnelUrl;
-                    tunnelUrlEl.style.color = '#43b581';
-                    copyBtn.disabled = false;
+                if(isRunning) {
                     discordStatusEl.style.display = 'block';
                 } else {
-                    tunnelUrlEl.innerText = 'Gerando link... aguarde';
-                    tunnelUrlEl.style.color = '#b9bbbe';
-                    copyBtn.disabled = true;
                     discordStatusEl.style.display = 'none';
                 }
 
@@ -206,8 +200,10 @@ const server = http.createServer((req, res) => {
             
             logs.push("⏳ Aguardando Vite iniciar (3s)...");
             setTimeout(() => {
-                logs.push("🌐 Iniciando túnel Cloudflare...");
-                cfProcess = spawn(path.join(__dirname, 'cloudflared.exe'), ['tunnel', '--url', 'http://127.0.0.1:5173'], { shell: false });
+                logs.push("🌐 Iniciando túnel permanente Cloudflare Zero Trust...");
+                tunnelUrl = "https://discord.haven3d.com.br";
+                
+                cfProcess = spawn(path.join(__dirname, 'cloudflared.exe'), ['tunnel', 'run', 'discord-haven'], { shell: false });
                 
                 cfProcess.stdout.on('data', d => {
                     const line = d.toString().trim();
@@ -217,9 +213,7 @@ const server = http.createServer((req, res) => {
                     const line = d.toString().trim();
                     if(line) logs.push('[Cloudflare] ' + line);
                     
-                    const match = line.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
-                    if (match && tunnelUrl !== match[0]) {
-                        tunnelUrl = match[0];
+                    if (line.includes('Registered tunnel connection')) {
                         logs.push('<span style="color: #43b581">🔗 TÚNEL ATIVO: ' + tunnelUrl + '</span>');
                     }
                 });

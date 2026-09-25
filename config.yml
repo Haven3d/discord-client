@@ -1,1 +1,7 @@
-{}
+tunnel: ee077553-34a9-4dc1-b9d0-81cf3946cc9e
+credentials-file: C:\Users\Admin\.cloudflared\ee077553-34a9-4dc1-b9d0-81cf3946cc9e.json
+
+ingress:
+  - hostname: discord.haven3d.com.br
+    service: http://127.0.0.1:5173
+  - service: http_status:404
