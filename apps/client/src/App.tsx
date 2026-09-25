@@ -14,6 +14,13 @@ const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(100);
   const [isMuted, setIsMuted] = useState(false);
+  const [watchingStreamerId, setWatchingStreamerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (watchingStreamerId && !activeStreamers.includes(watchingStreamerId)) {
+      setWatchingStreamerId(null);
+    }
+  }, [watchingStreamerId, activeStreamers]);
 
   useEffect(() => {
     if (!isInsideDiscord && !socketService.getSocket()) {
@@ -123,7 +130,57 @@ const App: React.FC = () => {
         </main>
       ) : otherStreamers.length > 0 ? (
         <main id="grid" className="grid palco" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-          <VideoGrid activeStreamers={otherStreamers} channelId={channelId || 'default-room'} />
+          
+          <div className="tile" style={{ width: '100%', height: '100%', position: 'relative' }}>
+            {watchingStreamerId ? (
+              <VideoGrid streamerId={watchingStreamerId} channelId={channelId || 'default-room'} />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '10px' }}>
+                <button className="btn go" onClick={() => setWatchingStreamerId(otherStreamers[0])} style={{ padding: '0 20px', borderRadius: '999px', height: '46px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                  Assistir tela
+                </button>
+                <p className="muted" style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
+                  HAVEN 3D - {otherStreamers[0] === 'dev-user' ? 'Dev User' : 'Usuário'} está transmitindo
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="divider" style={{ width: '1px', background: 'var(--line-subtle, rgba(255,255,255,0.09))' }}></div>
+          
+          <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', overflowY: 'auto' }}>
+            <div className="sidebar-count" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '999px', background: 'var(--tile)', color: 'var(--muted)', fontSize: '12px', fontWeight: 500, alignSelf: 'flex-start' }}>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.85 }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              {otherStreamers.length}
+            </div>
+            
+            {otherStreamers.map(id => (
+              <div key={id} className="tile" style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--tile)', borderRadius: '8px', marginTop: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>
+                  {(id === 'dev-user' ? 'DU' : 'US')}
+                </div>
+                <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                    HAVEN 3D - {id === 'dev-user' ? 'Dev User' : 'Usuário'}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent)' }}></span>
+                    Transmitindo
+                  </div>
+                </div>
+                {watchingStreamerId !== id && (
+                  <button className="btn" onClick={() => setWatchingStreamerId(id)} style={{ padding: '4px 10px', height: 'auto', minWidth: 0, minHeight: '32px', fontSize: '12px' }}>
+                    Assistir
+                  </button>
+                )}
+              </div>
+            ))}
+          </aside>
         </main>
       ) : (
         <div id="empty" className="empty">
