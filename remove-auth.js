@@ -1,0 +1,1 @@
+const fs = require('fs'); let c = fs.readFileSync('PainelServidor.js', 'utf8'); c = c.replace(/<button id="auth-btn"[\\s\\S]*?<\\/button>/, ''); c = c.replace(/if \\(authEnabled\\) {[\\s\\S]*?#7289da';\\s*}/, ''); fs.writeFileSync('PainelServidor.js', c);

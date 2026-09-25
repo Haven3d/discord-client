@@ -79,8 +79,9 @@ const htmlPage = `
     <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" width="60" style="margin-bottom: 10px; filter: grayscale(100%) brightness(200%);">
     <h1>Gerenciador de Servidor - Haven 3D</h1>
     
-    <div id="controls">
-        <button id="main-btn" class="btn btn-start" onclick="toggle()">🚀 Ligar Servidor</button>
+    <div id="controls" style="display: flex; justify-content: center; gap: 20px;">
+        <button id="main-btn" class="btn btn-start" onclick="toggle()">🚀 Ligar Servidor</button> 
+        
     </div>
     
     <div id="url-box" style="display:none;">
@@ -101,13 +102,17 @@ const htmlPage = `
 
     <script>
         let isRunning = false;
+        let authEnabled = false;
+        
+        );
+        }
         
         async function toggle() {
             document.getElementById('main-btn').disabled = true;
             document.getElementById('main-btn').innerText = '⏳ Aguarde...';
             const res = await fetch('/toggle', { method: 'POST' });
             const data = await res.json();
-            isRunning = data.isRunning;
+            isRunning = data.isRunning; authEnabled = data.authEnabled;
             document.getElementById('main-btn').disabled = false;
             updateUI();
         }
@@ -118,6 +123,7 @@ const htmlPage = `
                 btn.className = 'btn btn-stop';
                 btn.innerText = '🛑 Desligar Servidor';
                 document.getElementById('url-box').style.display = 'flex';
+            
             } else {
                 btn.className = 'btn btn-start';
                 btn.innerText = '🚀 Ligar Servidor';
@@ -224,11 +230,11 @@ const server = http.createServer((req, res) => {
             }, 3000);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ isRunning: !!(npmProcess || cfProcess) }));
-    } else if (req.method === 'GET' && req.url === '/status') {
+        res.end(JSON.stringify({ isRunning: !!(npmProcess || cfProcess), authEnabled: (require('fs').readFileSync(require('path').join(__dirname, 'apps/client/.env'), 'utf8').includes('true')) }));
+     else if (req.method === 'GET' && req.url === '/status') {
         if (logs.length > 100) logs = logs.slice(logs.length - 100);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ isRunning: !!(npmProcess || cfProcess), tunnelUrl, logs }));
+        res.end(JSON.stringify({ isRunning: !!(npmProcess || cfProcess), tunnelUrl, logs, authEnabled: (require('fs').readFileSync(require('path').join(__dirname, 'apps/client/.env'), 'utf8').includes('true')) }));
     } else {
         res.writeHead(404);
         res.end();

@@ -29,6 +29,18 @@ export const useDiscordSdk = () => {
 
     const setupDiscord = async () => {
       try {
+        // Detecta se estamos rodando dentro do iFrame do Discord
+        // O Discord sempre passa o parâmetro frame_id na URL da Activity
+        const isEmbedded = new URLSearchParams(window.location.search).has('frame_id') || (window !== window.parent);
+        
+        if (!isEmbedded) {
+          console.log('Rodando fora do Discord (Navegador). Usando mock dev-user.');
+          setAuth({ id: 'dev-user', username: 'Dev User' });
+          setChannelId('default-room');
+          setIsReady(true);
+          return;
+        }
+
         await discordSdk.ready();
 
         const { code } = await discordSdk.commands.authorize({
@@ -59,6 +71,8 @@ export const useDiscordSdk = () => {
         
         if (discordSdk.channelId != null) {
             setChannelId(discordSdk.channelId);
+        } else {
+            setChannelId('default-room');
         }
         setIsReady(true);
       } catch (err: any) {

@@ -1,0 +1,1 @@
+const fs = require('fs'); let c = fs.readFileSync('apps/client/src/App.tsx', 'utf8'); const lines = c.split('\\n'); const out = lines.filter(l => !l.includes('isInsideDiscord') && !l.includes('L do painel de controle')).join('\\n'); fs.writeFileSync('apps/client/src/App.tsx', out);
