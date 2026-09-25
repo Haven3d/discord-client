@@ -21,6 +21,18 @@ export class WebCodecsSender {
   public async start(stream: MediaStream, bitrate: number) {
     this.isRunning = true;
 
+    // Aguarda o socket conectar para garantir que temos um socket.id vǭlido
+    if (!this.socketIo.connected || !this.socketIo.id) {
+      console.log('[WebCodecsSender] Aguardando Socket.io conectar...');
+      await new Promise<void>((resolve) => {
+        const onConnect = () => {
+          this.socketIo.off('connect', onConnect);
+          resolve();
+        };
+        this.socketIo.on('connect', onConnect);
+      });
+    }
+
     // 1. Conectar no WebSocket Puro
     const baseUrl = import.meta.env.VITE_SERVER_URL || window.location.origin;
     const wsUrl = baseUrl.replace(/^http/, 'ws') + `/video-relay?channelId=${this.channelId}&role=broadcaster&socketId=${this.socketIo.id}`;
