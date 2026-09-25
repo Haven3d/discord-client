@@ -61,13 +61,13 @@ function App() {
       try {
         sessionData = JSON.parse(decodeURIComponent(escape(atob(tokenBase64))));
       } catch (e) {
-        setError('Token corrompido ou formato invǭlido.');
+        setError('Token corrompido ou formato inválido.');
         return;
       }
     } else if (channelId && import.meta.env.DEV) {
       sessionData = { room: channelId, uid: 'dev-user', name: 'Dev User', role: 'broadcaster' };
     } else {
-      setError('Sessǜo invǭlida. O link de transmissǜo requer um token.');
+      setError('Sessão inválida. O link de transmissǜo requer um token.');
       return;
     }
 
@@ -94,7 +94,7 @@ function App() {
         disconnectSocket();
       };
     } catch (e) {
-      setError('Token corrompido ou formato invǭlido.');
+      setError('Token corrompido ou formato inválido.');
     }
   }, []);
 
@@ -158,16 +158,15 @@ function App() {
   }
 
   return (
-    <>
-      <header>
-        <div className="header-content">
-          <div className="brand-wrap">
-            <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img src="/haven-logo.png" alt="HAVEN" width="32" height="32" style={{ borderRadius: '8px' }} />
-              <span style={{ fontWeight: 700, fontSize: '18px', color: 'var(--c-logo-text)' }}>HAVEN</span>
-            </div>
+    <div className="shell">
+      <header className="top-nav">
+        <div className="brand-wrap">
+          <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src="/haven-logo.png" alt="HAVEN" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+            <span style={{ fontWeight: 700, fontSize: '24px', letterSpacing: '-0.05em', color: 'var(--c-logo-text)' }}>HAVEN</span>
           </div>
-          <div className="top-actions">
+        </div>
+        <div className="top-actions">
             <button id="themeToggle" type="button" className="btn-theme" title="Alternar tema" onClick={toggleTheme}>
               <svg className="theme-icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -185,14 +184,12 @@ function App() {
               </svg>
             </button>
           </div>
-        </div>
       </header>
 
-      <main>
-        <div className="card">
-          <div className="card-head">
+      <main className="card">
+        <div className="card-head">
             <div className="card-title-wrap">
-              <h1>Painel de Transmissǜo</h1>
+              <h1>Painel de Transmissão</h1>
               <div className="card-tag">Painel HAVEN</div>
             </div>
           </div>
@@ -227,7 +224,7 @@ function App() {
               {!isStreaming ? (
                 <div id="tela-setup">
                   <div className="sem-preview">Sem preview</div>
-                  <p className="note">Marque "Compartilhar o ǭudio" na janela do navegador para transmitir o som.</p>
+                  <p className="note">Marque "Compartilhar o áudio" na janela do navegador para transmitir o som.</p>
                   <div className="acao">
                     <button className="primary" onClick={handleStartCapture}>Escolher tela e transmitir</button>
                   </div>
@@ -248,11 +245,11 @@ function App() {
             </section>
 
             <section className="bloco">
-              <h2>Cǽmera (Em Breve)</h2>
+              <h2>Câmera (Em Breve)</h2>
               <div id="camera-setup">
                 <div className="sem-preview">Sem preview</div>
                 <div className="acao">
-                  <button className="primary" disabled style={{ opacity: 0.5 }}>Cǽmera indisponvel</button>
+                  <button className="primary" disabled style={{ opacity: 0.5 }}>Câmera indisponível</button>
                 </div>
               </div>
             </section>
@@ -267,7 +264,6 @@ function App() {
               </a>
             </div>
           </footer>
-        </div>
       </main>
 
       <div className="wpp-float-container">
@@ -282,7 +278,7 @@ function App() {
           </svg>
         </a>
       </div>
-    </>
+    </div>
   );
 }
 
