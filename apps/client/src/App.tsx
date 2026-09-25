@@ -7,7 +7,8 @@ import { socketService, connectSocket, disconnectSocket } from './services/socke
 import './styles/global.css';
 
 const App: React.FC = () => {
-  const isInsideDiscord = true; // Use real Discord SDK
+  // Deixando false para permitir testes no navegador fora do Discord
+  const isInsideDiscord = false; 
 
   const { auth, channelId, discordSdk, isReady, error } = useDiscordSdk();
   const { activeStreamers } = useWebCodecs();
