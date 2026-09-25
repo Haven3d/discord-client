@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import socket, { connectSocket, disconnectSocket } from './services/socket';
 import { WebCodecsSender } from './services/webcodecs-sender';
-import { QUALITY_PRESETS, startScreenCapture, stopCapture } from './services/media-capture';
+import { QualityPreset, QUALITY_PRESETS, startScreenCapture, stopCapture } from './services/media-capture';
 import './styles/global.css';
 
 function App() {
@@ -207,7 +207,7 @@ function App() {
                     disabled={isStreaming}
                   >
                     {QUALITY_PRESETS.map((p, i) => (
-                      <option key={i} value={i}>{p.label}</option>
+                      <option key={i} value={i}>{p.name} ({(p.bitrate/1000000).toFixed(1)} Mbps)</option>
                     ))}
                   </select>
                 </label>
