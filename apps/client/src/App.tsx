@@ -7,8 +7,7 @@ import { socketService, connectSocket, disconnectSocket } from './services/socke
 import './styles/global.css';
 
 const App: React.FC = () => {
-
-
+  const isInsideDiscord = true; // Use real Discord SDK
 
   const { auth, channelId, discordSdk, isReady, error } = useDiscordSdk();
   const { activeStreamers } = useWebCodecs();
@@ -24,10 +23,15 @@ const App: React.FC = () => {
   }, [watchingStreamerId, activeStreamers]);
 
   useEffect(() => {
-    if (isReady && auth) {
-      const roomToJoin = channelId || "default-room";
+    if (!isInsideDiscord && !socketService.getSocket()) {
+      connectSocket({ room: 'default-room', uid: 'dev-user', name: 'Dev User', role: 'viewer' });
+    }
+  }, [isInsideDiscord]);
+
+  useEffect(() => {
+    if (isReady && auth && channelId) {
       const viewerPayload = {
-        room: roomToJoin,
+        room: channelId,
         uid: auth.id,
         name: auth.username,
         role: 'viewer'
@@ -41,18 +45,21 @@ const App: React.FC = () => {
     }
   }, [isReady, auth, channelId]);
 
-  if (error) {
+  if (error && isInsideDiscord) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', padding: '20px', textAlign: 'center' }}>
         <p style={{ color: '#ef4444', fontSize: '16px' }}>
           Erro: {error.message}
           <br /><br />
-          <small>Verifique a conexao com a API do Discord.</small>
+          <small>Abra este link por dentro do Discord (como uma Activity) ou mude isInsideDiscord para false no App.tsx para testar o layout.</small>
         </p>
       </div>
     );
   }
 
+  if (!isInsideDiscord && false) {
+     // ignoring old branch
+  }
 
   const handleShareClick = async () => {
     const captureUrl = import.meta.env.VITE_CAPTURE_URL || 'http://localhost:5174';
@@ -224,7 +231,7 @@ const App: React.FC = () => {
                     const isCssFullscreen = videoContainer.classList.contains('css-fullscreen');
                     if (!document.fullscreenElement && !isCssFullscreen) {
                       videoContainer.requestFullscreen().catch((err) => {
-                        console.log('Fallback CSS tela cheia (Discord block)');
+                        console.log('Fallback CSS tela cheia');
                         videoContainer.classList.add('css-fullscreen');
                       });
                     } else {
