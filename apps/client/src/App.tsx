@@ -84,13 +84,18 @@ const App: React.FC = () => {
   const otherStreamers = activeStreamers.filter(id => id !== currentUserId);
 
   return (
-    <div id="app" className="flutua palco">
+    <div id="app">
       <div className="topbar">
         <div className="topbar-left">
           <div className="topbar-brand">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <img src="/haven-logo.png" alt="HAVEN" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
-              <span style={{ fontWeight: 700, fontSize: '18px', letterSpacing: '-0.05em', color: 'var(--text)' }}>HAVEN</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/haven-logo.png" alt="HAVEN" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
+                <span style={{ fontWeight: 700, fontSize: '18px', letterSpacing: '-0.05em', color: 'var(--text)' }}>HAVEN</span>
+              </div>
+              <div className="pill room-pill">
+                Sala de call
+              </div>
             </div>
           </div>
         </div>
@@ -101,27 +106,31 @@ const App: React.FC = () => {
         )}
       </div>
 
-      <div className="shell">
-        <div id="mediaWrap" className="media-wrap live">
-          {isBroadcasting ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '10px' }}>
-              <button className="btn go" onClick={handleShareClick} style={{ padding: '0 20px', borderRadius: '999px', height: '46px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 5h18v11H3z" />
-                  <path d="M8 20h8" />
-                </svg>
-                Ver minha tela
-              </button>
-              <p className="muted" style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
-                Sua transmissão está no ar
-              </p>
-            </div>
-          ) : otherStreamers.length > 0 ? (
-            <VideoGrid activeStreamers={otherStreamers} channelId={channelId || 'default-room'} />
-          ) : (
-            <p id="emptyText" className="muted">Nenhuma transmissão ativa. Seja o primeiro a compartilhar.</p>
-          )}
+      {isBroadcasting ? (
+        <main id="grid" className="grid palco" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '10px' }}>
+            <button className="btn go" onClick={handleShareClick} style={{ padding: '0 20px', borderRadius: '999px', height: '46px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 5h18v11H3z" />
+                <path d="M8 20h8" />
+              </svg>
+              Ver minha tela
+            </button>
+            <p className="muted" style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
+              Sua transmissão está no ar
+            </p>
+          </div>
+        </main>
+      ) : otherStreamers.length > 0 ? (
+        <main id="grid" className="grid palco" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+          <VideoGrid activeStreamers={otherStreamers} channelId={channelId || 'default-room'} />
+        </main>
+      ) : (
+        <div id="empty" className="empty">
+          <div className="icon" style={{ fontSize: '48px', opacity: 0.5 }}>👀</div>
+          <p id="emptyText" className="muted" style={{ marginTop: '12px' }}>Nenhuma transmissão ativa.</p>
         </div>
+      )}
 
         {!isBroadcasting && (
           <div className="bottombar">
@@ -181,7 +190,6 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 };

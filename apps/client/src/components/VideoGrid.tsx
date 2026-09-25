@@ -129,7 +129,7 @@ const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channel
   }, [streamerId, channelId]);
 
   return (
-    <>
+    <div className="tile">
       <canvas
         ref={canvasRef}
         id="player"
@@ -150,7 +150,7 @@ const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channel
           {status}
         </div>
       )}
-    </>
+    </div>
   );
 };
 
