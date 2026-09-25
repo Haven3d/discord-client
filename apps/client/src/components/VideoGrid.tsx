@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { socketService } from '../services/socket';
 
 interface VideoGridProps {
-  streamerId: string | null;
+  activeStreamers?: string[];
   channelId?: string;
 }
 
-export const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channelId: string }) => {
+const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, channelId: string }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const decoderRef = useRef<VideoDecoder | null>(null);
   const [status, setStatus] = useState<string>('Conectando...');
@@ -65,7 +65,7 @@ export const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, 
               codedHeight: payload.codedHeight,
               optimizeForLatency: true,
             });
-            setStatus(''); // Limpa o status
+            setStatus(''); // Limpa o status quando o vídeo começar
           } catch (e) {
             console.error('[WebCodecPlayer] Configure failed:', e);
           }
@@ -86,7 +86,7 @@ export const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, 
 
         if (sid !== streamerId) return;
 
-        const headerSize = 20 + 1 + 8;
+        const headerSize = 20 + 1 + 8; // 20 ID + 1 Tipo + 8 TS
         if (buf.byteLength < headerSize) return;
 
         const type = decoderView.getUint8(20) === 0 ? 'key' : 'delta';
@@ -129,15 +129,12 @@ export const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, 
   }, [streamerId, channelId]);
 
   return (
-    <div className="tile" style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <>
       <canvas
         ref={canvasRef}
         id="player"
         className="player"
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
           width: '100%',
           height: '100%',
           objectFit: 'contain',
@@ -153,11 +150,16 @@ export const WebCodecPlayer = ({ streamerId, channelId }: { streamerId: string, 
           {status}
         </div>
       )}
-    </div>
+    </>
   );
 };
 
-export const VideoGrid: React.FC<VideoGridProps> = ({ streamerId, channelId = 'default-room' }) => {
-  if (!streamerId) return null;
-  return <WebCodecPlayer streamerId={streamerId} channelId={channelId} />;
+export const VideoGrid: React.FC<VideoGridProps> = ({ activeStreamers = [], channelId = 'default-room' }) => {
+  return (
+    <>
+      {activeStreamers.map((id) => (
+        <WebCodecPlayer key={id} streamerId={id} channelId={channelId} />
+      ))}
+    </>
+  );
 };
